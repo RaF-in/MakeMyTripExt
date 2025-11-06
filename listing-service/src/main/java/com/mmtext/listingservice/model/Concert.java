@@ -3,7 +3,6 @@ package com.mmtext.listingservice.model;
 import jakarta.persistence.*;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -15,6 +14,7 @@ public class Concert {
     private String title;
 
     @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(nullable = false)
     private Address venue;
     private OffsetDateTime date;
     private OffsetDateTime time;

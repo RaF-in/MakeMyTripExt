@@ -13,6 +13,8 @@ public class RoomType {
     private String roomType;
     private int totalRooms;
     private double pricePerNight;
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Hotel hotel;
 
     @ElementCollection
     private List<String> facilities;
@@ -55,6 +57,14 @@ public class RoomType {
 
     public void setFacilities(List<String> facilities) {
         this.facilities = facilities;
+    }
+
+    public Hotel getHotel() {
+        return hotel;
+    }
+
+    public void setHotel(Hotel hotel) {
+        this.hotel = hotel;
     }
 }
 

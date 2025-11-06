@@ -1,13 +1,15 @@
-package com.mmtext.listingservice.model;
+package com.mmtext.listingservice.dto;
 
+import com.mmtext.listingservice.model.TransportSchedule;
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
+import jakarta.validation.constraints.NotBlank;
 
-@Entity
-public class AirCraft extends Transport {
+import java.util.List;
+
+public class AirCraftAddOrUpdateRequestDTO extends TransportAddOrUpdateRequestDTO {
     private String aircraftName;
     private String model;
-    @Column(unique = true,  nullable = false)
+    @NotBlank(message = "AirCraft code can't be null and is required")
     private String code;
 
     public String getAircraftName() {

@@ -11,11 +11,13 @@ public class Hotel {
     private Long id;
     private String name;
     private String description;
-    @OneToMany(cascade = CascadeType.ALL)
-    private List<Address> addresses;
+    @OneToOne(cascade = CascadeType.ALL)
+    private Address addresses;
     private double rating;
     @ElementCollection
     private List<String> amenities;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "hotel")
+    private List<RoomType> roomTypes;
 
     public Long getId() {
         return id;
@@ -41,11 +43,11 @@ public class Hotel {
         this.description = description;
     }
 
-    public List<Address> getAddresses() {
+    public Address getAddresses() {
         return addresses;
     }
 
-    public void setAddresses(List<Address> addresses) {
+    public void setAddresses(Address addresses) {
         this.addresses = addresses;
     }
 
@@ -63,5 +65,13 @@ public class Hotel {
 
     public void setAmenities(List<String> amenities) {
         this.amenities = amenities;
+    }
+
+    public List<RoomType> getRoomTypes() {
+        return roomTypes;
+    }
+
+    public void setRoomTypes(List<RoomType> roomTypes) {
+        this.roomTypes = roomTypes;
     }
 }

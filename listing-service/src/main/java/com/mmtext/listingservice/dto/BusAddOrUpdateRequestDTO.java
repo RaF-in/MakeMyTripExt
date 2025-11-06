@@ -1,12 +1,9 @@
-package com.mmtext.listingservice.model;
+package com.mmtext.listingservice.dto;
+import jakarta.validation.constraints.NotBlank;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-
-@Entity
-public class Bus extends Transport {
+public class BusAddOrUpdateRequestDTO extends TransportAddOrUpdateRequestDTO {
     private String type;
-    @Column(unique = true, nullable = false)
+    @NotBlank(message = "Bus number must be unique and is required")
     private String busNum;
 
     public String getType() {

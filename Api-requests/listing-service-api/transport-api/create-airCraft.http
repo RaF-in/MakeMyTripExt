@@ -1,0 +1,12 @@
+### Crate an Air craft
+POST http://localhost:4000/api/admin/transport/airCraft
+Content-Type: application/json
+
+{
+  "description": "Supersonic Air craft",
+  "aircraftName": "Boyeing 212",
+  "code": "B212",
+  "model": "SuperSonic"
+}
+
+###

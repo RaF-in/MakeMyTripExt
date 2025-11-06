@@ -1,9 +1,8 @@
 package com.mmtext.listingservice.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+
+import java.util.List;
 
 @Entity
 public class Movie {
@@ -16,7 +15,8 @@ public class Movie {
     private String genre;
     private int durationMin;
     private String rating;
-
+    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, mappedBy = "movie")
+    private List<Show> shows;
     public Long getId() {
         return id;
     }
@@ -63,6 +63,14 @@ public class Movie {
 
     public void setRating(String rating) {
         this.rating = rating;
+    }
+
+    public List<Show> getShows() {
+        return shows;
+    }
+
+    public void setShows(List<Show> shows) {
+        this.shows = shows;
     }
 }
 
