@@ -1,0 +1,11 @@
+### POST request listing-service hotel
+POST http://localhost:4000/api/admin/hotel
+Content-Type: application/json
+
+{
+  "name": "Hotel Sea Cox",
+  "description": "Near Kolatoli",
+  "rating": 2.5
+}
+
+###
