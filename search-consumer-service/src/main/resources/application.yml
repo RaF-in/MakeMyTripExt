@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: search-consumer-service
+  kafka:
+    consumer:
+      bootstrap-servers: kafka-1:19092,kafka-2:19092,kafka-3:19092
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      max-poll-records: 10
+      session-timeout-ms: 30000
+      heartbeat-interval-ms: 10000
+      enable-auto-commit: false
+kafka:
+  topic:
+    db-movie-events: mmtext.public.movie_outbox_events
+    #db-show-events: mmtext.public.show_outbox_events
+    dlq: mmtext.public.movie_outbox_events.dlq
+
+  group:
+    movie: movie-consumer-group
+    show: show-consumer-group
+
+
+  retry:
+    max-attempts: 3
+    backoff-delay: 1000
+    multiplier: 2.0
+
+
+
