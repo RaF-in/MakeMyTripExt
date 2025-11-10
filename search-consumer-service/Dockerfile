@@ -8,6 +8,7 @@ COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
 
+RUN chmod +x mvnw
 # Download dependencies to leverage Docker cache
 RUN ./mvnw dependency:go-offline
 

@@ -17,8 +17,9 @@ public class KafkaEventListeners {
         this.objectMapper = objectMapper;
     }
 
-    @KafkaListener(topics = "${kafka.topic.movie-events}",
-            groupId = "${kafka.group.movie}")
+    //@KafkaListener(topics = "${kafka.topic.db-movie-events}",
+            //groupId = "${kafka.group.show}")
+    @KafkaListener(topics = "mmtext.public.movie_outbox_events", groupId = "movie-consumer-group")
     public void listen(ConsumerRecord<String, String> record) throws Exception {
         String topic = record.topic();
         String message = record.value();
@@ -33,24 +34,28 @@ public class KafkaEventListeners {
             // Handle database trigger events
             if (eventNode.has("after")) {
                 JsonNode afterNode = eventNode.get("after");
-                if (afterNode.has("type")) {
+                if (afterNode != null && afterNode.has("type") && afterNode.has("payload")) {
                     String eventType = afterNode.get("type").asText();
+                    String payloadString = afterNode.get("payload").asText();
 
-                    if (("CREATED".equals(eventType) ||
-                            "UPDATED".equals(eventType) ||
-                            "DELETED".equals(eventType)) &&
-                            afterNode.has("payload")) {
+                    // Parse the JSON inside payload
+                    JsonNode movieDataJson = objectMapper.readTree(payloadString);
 
-                        JsonNode movieDataJson = objectMapper.readTree(
-                                afterNode.get("payload").asText());
-                        log.info("Processing database trigger event: {}", eventType);
-                        log.info("Movie data: {}", movieDataJson.asText());
-                    }
+                    log.info("Processing database trigger event: {}", eventType);
+                    log.info("Movie data: {}", movieDataJson.toString());
                 }
+
             }
         } catch (Exception e) {
             log.error("Error processing message from topic {}: {}", topic, e.getMessage(), e);
             throw e; // Let Kafka handle retry logic
         }
     }
+
+    @KafkaListener(topics = "${kafka.topic.db-movie-events}",
+            groupId = "${kafka.group.movie}")
+    public void listenRaw(String message) {
+        System.out.println("RAW MESSAGE: " + message);
+    }
+
 }

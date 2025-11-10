@@ -19,7 +19,7 @@ WHEN 'DELETE' THEN
 END CASE;
 
 -- Insert into outbox_events table atomically
-INSERT INTO public.outbox_events (
+INSERT INTO public.movie_outbox_events (
     id, aggregate_type, type, payload, created_at
 ) VALUES (
              gen_random_uuid(), 'MOVIE', event_type,

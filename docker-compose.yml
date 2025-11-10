@@ -141,7 +141,7 @@ services:
       - mmtext_network
 
   postgres:
-    image: postgres:latest
+    image: postgres:17
     ports:
       - "5432:5432"
     environment:
@@ -190,13 +190,12 @@ services:
     build: ./listing-service
     container_name: listing-service
     ports:
-     - 4000:4000
+     - "4000:4000"
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: db
-      DB_USER: admin
-      DB_PASSWORD: admin
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=admin
+
     depends_on:
       - postgres
     networks:
