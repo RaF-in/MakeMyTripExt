@@ -209,13 +209,99 @@ services:
     environment:
       - SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS=kafka-1:19092,kafka-2:19092,kafka-3:19092
       - SPRING_KAFKA_CONSUMER_GROUP_ID=mmtext-consumer-group
+#      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch-node1:9200,http://elasticsearch-node2:9200,http://elasticsearch-node3:9200
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
     depends_on:
+#      - elasticsearch-node1
+#      - elasticsearch-node2
+#      - elasticsearch-node3
+      - elasticsearch
       - kafka-1
       - kafka-2
       - kafka-3
       - debezium
     networks:
       - mmtext_network
+
+  # 🟢 Elasticsearch Node 1 (master + data)
+#  elasticsearch-node1:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+#    container_name: elasticsearch-node1
+#    ports: # Optional: only if you need to access ES from your local machine (e.g., using Kibana)
+#      - "9200:9200"
+#    environment:
+#      - node.name=elasticsearch-node1
+#      - cluster.name=es-cluster
+#      - discovery.seed_hosts=elasticsearch-node2,elasticsearch-node3
+#      - cluster.initial_master_nodes=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+#      - bootstrap.memory_lock=true
+#      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Adjust memory as needed for your system
+#      # 👇 ADD THIS for development/testing to disable security
+#      - xpack.security.enabled=false
+#    ulimits:
+#      memlock:
+#        soft: -1
+#        hard: -1
+#    networks:
+#      - mmtext_network
+#
+#  elasticsearch-node2:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+#    container_name: elasticsearch-node2
+#    environment:
+#      - node.name=elasticsearch-node2
+#      - cluster.name=es-cluster
+#      - discovery.seed_hosts=elasticsearch-node1,elasticsearch-node3
+#      - cluster.initial_master_nodes=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+#      - bootstrap.memory_lock=true
+#      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+#      - xpack.security.enabled=false
+#    ulimits:
+#      memlock:
+#        soft: -1
+#        hard: -1
+#    networks:
+#      - mmtext_network
+#
+#  elasticsearch-node3:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+#    container_name: elasticsearch-node3
+#    environment:
+#      - node.name=elasticsearch-node3
+#      - cluster.name=es-cluster
+#      - discovery.seed_hosts=elasticsearch-node1,elasticsearch-node2
+#      - cluster.initial_master_nodes=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+#      - bootstrap.memory_lock=true
+#      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+#      - xpack.security.enabled=false
+#    ulimits:
+#      memlock:
+#        soft: -1
+#        hard: -1
+#    networks:
+#      - mmtext_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - network.host=0.0.0.0 # <--- THIS IS THE FIX
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
+    networks:
+      - mmtext_network
+
+volumes:
+  esdata1:
+#  esdata2:
+#  esdata3:
+
 networks:
   mmtext_network:
     driver: bridge

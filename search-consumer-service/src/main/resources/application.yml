@@ -11,6 +11,16 @@ spring:
       session-timeout-ms: 30000
       heartbeat-interval-ms: 10000
       enable-auto-commit: false
+
+#  elasticsearch:
+#    uris:
+#      - http://elasticsearch-node1:9200
+#      - http://elasticsearch-node2:9200
+#      - http://elasticsearch-node3:9200
+  elasticsearch:
+    uris:
+      - http://elasticsearch:9200
+
 kafka:
   topic:
     db-movie-events: mmtext.public.movie_outbox_events

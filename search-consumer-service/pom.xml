@@ -30,15 +30,18 @@
         <java.version>25</java.version>
     </properties>
     <dependencies>
+        <!-- Spring Data Elasticsearch (includes the new Java client) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
         </dependency>
+
+        <!-- Spring Kafka -->
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
         </dependency>
-
+        <!-- Test dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
