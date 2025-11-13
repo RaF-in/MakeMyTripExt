@@ -3,10 +3,10 @@ POST http://localhost:4000/api/admin/movie
 Content-Type: application/json
 
 {
-  "title": "Ek Thtdgd",
-  "genre": "ftssdffgmhs",
+  "title": "dekahe pehle var",
+  "genre": "Romantic",
   "durationMin": 3,
-  "language": "dutch"
+  "language": "Eng"
 }
 
 ###

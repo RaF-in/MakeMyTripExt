@@ -8,3 +8,27 @@ spring:
     redis:
       host: redis
       port: 6379
+      # Connection pool settings
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+      # Timeout settings
+      timeout: 60000ms
+      connect-timeout: 2000ms
+
+  cache:
+    type: redis
+    redis:
+      # Default cache TTL (30 minutes)
+      time-to-live: 1800000
+      # Use key prefix to avoid conflicts
+      key-prefix: "search-service:"
+      # Enable cache statistics
+      enable-statistics: true
+      # Don't cache null values
+      cache-null-values: false
+server:
+  port: 4001

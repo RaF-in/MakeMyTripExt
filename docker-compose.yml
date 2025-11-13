@@ -204,8 +204,6 @@ services:
   search-consumer-service:
     build: ./search-consumer-service
     container_name: search-consumer-service
-    #ports:
-      #- 4001:4001
     restart: on-failure
     environment:
       - SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS=kafka-1:19092,kafka-2:19092,kafka-3:19092
@@ -307,15 +305,41 @@ services:
     networks:
       - mmtext_network
 
+  search-service:
+    build: ./search-service
+    container_name: search-service
+    ports:
+      - "4001:4001"
+    restart: on-failure
+    environment:
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy  # Wait until healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mmtext_network
+
   redis:
     image: redis:7.2
     container_name: redis
     ports:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - mmtext_network
 
 volumes:
   esdata1:
+  redis_data:
 #  esdata2:
 #  esdata3:
 

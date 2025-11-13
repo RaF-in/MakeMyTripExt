@@ -2,3 +2,20 @@ curl -s localhost:8083/connectors/postgres-connector/status | jq
 curl -X POST http://localhost:8083/connectors      -H "Content-Type: application/json"      -d @connectors/postgres-connector.json
 docker compose up -d --build
 docker compose down
+
+# Redis commands
+docker exec -it redis redis-cli
+127.0.0.1:6379> keys *
+1) "movies::dhoom"
+127.0.0.1:6379> keys *
+1) "movies::dekahe pehle var"
+2) "movies::dhoom"
+3) "movies::dekha"
+4) "movies::pehle"
+5) "movies::dekahe"
+6) "movies::peh"
+127.0.0.1:6379> dbsize
+(integer) 6
+127.0.0.1:6379> get "movies::dhoom"
+"[\"java.util.Collections$UnmodifiableRandomAccessList\",[{\"@class\":\"com.mmtext.searchservice.esdocument.MovieDocument\",\"id\":1,\"title\":\"Dhoom 1\",\"language\":\"Eng\",\"genre\":\"Romantic\",\"durationMin\":0,\"rating\":null,\"shows\":null},{\"@class\":\"com.mmtext.searchservice.esdocument.MovieDocument\",\"id\":2,\"title\":\"Dhoom 2\",\"language\":\"Eng\",\"genre\":\"Romantic\",\"durationMin\":0,\"rating\":null,\"shows\":null},{\"@class\":\"com.mmtext.searchservice.esdocument.MovieDocument\",\"id\":3,\"title\":\"Dhoom 3\",\"language\":\"Eng\",\"genre\":\"Romantic\",\"durationMin\":0,\"rating\":null,\"shows\":null},{\"@class\":\"com.mmtext.searchservice.esdocument.MovieDocument\",\"id\":4,\"title\":\"Dhoom 4\",\"language\":\"Eng\",\"genre\":\"Romantic\",\"durationMin\":0,\"rating\":null,\"shows\":null},{\"@class\":\"com.mmtext.searchservice.esdocument.MovieDocument\",\"id\":5,\"title\":\"Dhoom 5\",\"language\":\"Eng\",\"genre\":\"Romantic\",\"durationMin\":0,\"rating\":null,\"shows\":null},{\"@class\":\"com.mmtext.searchservice.esdocument.MovieDocument\",\"id\":6,\"title\":\"Dhoom 87\",\"language\":\"Eng\",\"genre\":\"Romantic\",\"durationMin\":0,\"rating\":null,\"shows\":null}]]"
+

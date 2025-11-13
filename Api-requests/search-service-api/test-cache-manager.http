@@ -1,0 +1,4 @@
+### GET request to example server
+http://localhost:4001/api/test/cache-manager | jq '.'
+
+###

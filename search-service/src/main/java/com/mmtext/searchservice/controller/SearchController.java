@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/search")
@@ -139,5 +140,47 @@ public class SearchController {
             @RequestParam String text) {
         List<MovieDocument> movies = searchService.weightedSearch(text);
         return ResponseEntity.ok(movies);
+    }
+
+    // ==================== Cache Management Endpoints ====================
+
+    /**
+     * 🗑️ Clear movie cache
+     * DELETE /api/search/cache/movies
+     */
+    @DeleteMapping("/cache/movies")
+    public ResponseEntity<Map<String, String>> clearMoviesCache() {
+        searchService.evictMoviesCache();
+        return ResponseEntity.ok(Map.of("message", "Movies cache cleared successfully"));
+    }
+
+    /**
+     * 🗑️ Clear theaters cache
+     * DELETE /api/search/cache/theaters
+     */
+    @DeleteMapping("/cache/theaters")
+    public ResponseEntity<Map<String, String>> clearTheatersCache() {
+        searchService.evictTheatersCache();
+        return ResponseEntity.ok(Map.of("message", "Theaters cache cleared successfully"));
+    }
+
+    /**
+     * 🗑️ Clear shows cache
+     * DELETE /api/search/cache/shows
+     */
+    @DeleteMapping("/cache/shows")
+    public ResponseEntity<Map<String, String>> clearShowsCache() {
+        searchService.evictShowsCache();
+        return ResponseEntity.ok(Map.of("message", "Shows cache cleared successfully"));
+    }
+
+    /**
+     * 🗑️ Clear all caches
+     * DELETE /api/search/cache/all
+     */
+    @DeleteMapping("/cache/all")
+    public ResponseEntity<Map<String, String>> clearAllCaches() {
+        searchService.evictAllCaches();
+        return ResponseEntity.ok(Map.of("message", "All caches cleared successfully"));
     }
 }
