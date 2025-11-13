@@ -3,9 +3,9 @@ POST http://localhost:4000/api/admin/movie
 Content-Type: application/json
 
 {
-  "title": "Ek Thta Tigrehgfjdgd",
-  "genre": "ftsmhs",
-  "durationMin": 2,
+  "title": "Ek Thtdgd",
+  "genre": "ftssdffgmhs",
+  "durationMin": 3,
   "language": "dutch"
 }
 

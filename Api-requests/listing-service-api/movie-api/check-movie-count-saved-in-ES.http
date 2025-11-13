@@ -1,0 +1,5 @@
+
+# curl http://localhost:9200/movies/_count?pretty
+GET http://localhost:9200/movie/_count?pretty
+
+###
