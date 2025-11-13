@@ -1,8 +1,12 @@
-package com.mmtext.searchconsumerservice.service;
+package com.mmtext.searchservice.service;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
+
+import com.mmtext.searchservice.esdocument.MovieDocument;
+import com.mmtext.searchservice.esdocument.ShowDocument;
+import com.mmtext.searchservice.esdocument.TheaterDocument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -10,9 +14,6 @@ import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.stereotype.Service;
-import com.mmtext.searchconsumerservice.esdocument.MovieDocument;
-import com.mmtext.searchconsumerservice.esdocument.ShowDocument;
-import com.mmtext.searchconsumerservice.esdocument.TheaterDocument;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -44,29 +45,29 @@ public class SearchService {
                 .toList();
     }
 
-//    /** 🏠 Theaters near a geo point */
-//    public List<TheaterDocument> searchTheatersNear(double lat, double lon, String distance) {
-//        Query geoQuery = Query.of(q -> q
-//                .geoDistance(g -> g
-//                        .field("address.location")
-//                        .location(l -> l
-//                                .latlon(ll -> ll
-//                                        .lat(lat)
-//                                        .lon(lon)
-//                                )
-//                        )
-//                        .distance(distance)
-//                )
-//        );
-//
-//        NativeQuery nativeQuery = NativeQuery.builder()
-//                .withQuery(geoQuery)
-//                .build();
-//
-//        return elasticsearchOperations.search(nativeQuery, TheaterDocument.class)
-//                .map(SearchHit::getContent)
-//                .toList();
-//    }
+    /** 🏠 Theaters near a geo point */
+    public List<TheaterDocument> searchTheatersNear(double lat, double lon, String distance) {
+        Query geoQuery = Query.of(q -> q
+                .geoDistance(g -> g
+                        .field("address.location")
+                        .location(l -> l
+                                .latlon(ll -> ll
+                                        .lat(lat)
+                                        .lon(lon)
+                                )
+                        )
+                        .distance(distance)
+                )
+        );
+
+        NativeQuery nativeQuery = NativeQuery.builder()
+                .withQuery(geoQuery)
+                .build();
+
+        return elasticsearchOperations.search(nativeQuery, TheaterDocument.class)
+                .map(SearchHit::getContent)
+                .toList();
+    }
 
     /** 🎭 Find theaters showing a given movie */
     public List<TheaterDocument> searchTheatersByMovie(String movieTitle) {
@@ -229,36 +230,36 @@ public class SearchService {
                 .map(SearchHit::getContent)
                 .toList();
     }
-//    public List<ShowDocument> searchShowsNearNow(double lat, double lon, String distanceKm) {
-//        OffsetDateTime now = OffsetDateTime.now();
-//        OffsetDateTime nextTwoHours = now.plusHours(2);
-//
-//        Query timeRangeQuery = Query.of(q -> q.range(r -> r.date(d -> d
-//                .field("showTime")
-//                .gte(now.toString())
-//                .lte(nextTwoHours.toString())
-//        )));
-//
-//        Query geoQuery = Query.of(q -> q.geoDistance(g -> g
-//                .field("theater.address.location")
-//                .location(l -> l.latlon(ll -> ll.lat(lat).lon(lon)))
-//                .distance(distanceKm)
-//        ));
-//
-//        Query boolQuery = Query.of(q -> q.bool(b -> b.filter(timeRangeQuery, geoQuery)));
-//
-//        NativeQuery nativeQuery = new NativeQuery(boolQuery);
-//
-//        // Sort by showTime ascending
-//        nativeQuery.addSort(Sort.by(Sort.Order.asc("showTime")));
-//
-//        // NOTE: Spring Data Sort does not support geo distance directly.
-//        // For geo distance sorting, you need a raw Elasticsearch query or store distance as a numeric field.
-//
-//        return elasticsearchOperations.search(nativeQuery, ShowDocument.class)
-//                .map(SearchHit::getContent)
-//                .toList();
-//    }
+    public List<ShowDocument> searchShowsNearNow(double lat, double lon, String distanceKm) {
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime nextTwoHours = now.plusHours(2);
+
+        Query timeRangeQuery = Query.of(q -> q.range(r -> r.date(d -> d
+                .field("showTime")
+                .gte(now.toString())
+                .lte(nextTwoHours.toString())
+        )));
+
+        Query geoQuery = Query.of(q -> q.geoDistance(g -> g
+                .field("theater.address.location")
+                .location(l -> l.latlon(ll -> ll.lat(lat).lon(lon)))
+                .distance(distanceKm)
+        ));
+
+        Query boolQuery = Query.of(q -> q.bool(b -> b.filter(timeRangeQuery, geoQuery)));
+
+        NativeQuery nativeQuery = new NativeQuery(boolQuery);
+
+        // Sort by showTime ascending
+        nativeQuery.addSort(Sort.by(Sort.Order.asc("showTime")));
+
+        // NOTE: Spring Data Sort does not support geo distance directly.
+        // For geo distance sorting, you need a raw Elasticsearch query or store distance as a numeric field.
+
+        return elasticsearchOperations.search(nativeQuery, ShowDocument.class)
+                .map(SearchHit::getContent)
+                .toList();
+    }
 
     /** 🔥 Trending movies based on number of shows */
     public List<MovieDocument> trendingMovies() {

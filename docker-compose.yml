@@ -223,6 +223,8 @@ services:
         condition: service_started
       debezium:
         condition: service_started
+      redis:
+        condition: service_started
     networks:
       - mmtext_network
 
@@ -304,6 +306,13 @@ services:
       - esdata1:/usr/share/elasticsearch/data
     networks:
       - mmtext_network
+
+  redis:
+    image: redis:7.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
 
 volumes:
   esdata1:

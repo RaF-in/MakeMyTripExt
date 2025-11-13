@@ -1,4 +1,4 @@
-package com.mmtext.searchconsumerservice.esdocument;
+package com.mmtext.searchservice.esdocument;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.DateFormat;

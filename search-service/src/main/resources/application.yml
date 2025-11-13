@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: search-service
+  elasticsearch:
+    uris:
+      http://elasticsearch:9200
+  data:
+    redis:
+      host: redis
+      port: 6379
