@@ -1,0 +1,11 @@
+### Crate a Movie
+POST http://localhost:4000/api/admin/movie
+Content-Type: application/json
+
+{
+  "title": "Once upon a time in London",
+  "language": "English",
+  "genre": "Thriller"
+}
+
+###

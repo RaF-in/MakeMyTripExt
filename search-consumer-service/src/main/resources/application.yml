@@ -20,6 +20,8 @@ spring:
   elasticsearch:
     uris:
       - http://elasticsearch:9200
+    socket-timeout: 60s
+    connection-timeout: 60s
 
 kafka:
   topic:

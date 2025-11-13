@@ -1,0 +1,42 @@
+###
+# curl -X POST http://localhost:8083/connectors      -H "Content-Type: application/json"      -d @connectors/postgres-connector.json
+POST http://localhost:8083/connectors
+Content-Type: application/json
+
+{
+  "name": "postgres-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "admin",
+    "database.password": "admin",
+    "database.dbname": "db",
+    "database.server.name": "mmtext",
+    "table.include.list": "public.movie_outbox_events",
+    "topic.prefix": "mmtext",
+    "plugin.name": "pgoutput",
+    "publication.name": "dbz_publication",
+    "slot.name": "debezium_outbox_slot",
+    "snapshot.mode": "initial",
+    "snapshot.fetch.size": "10000",
+    "max.queue.size": "8192",
+    "max.batch.size": "2048",
+    "poll.interval.ms": "100",
+    "heartbeat.interval.ms": "5000",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "errors.tolerance": "all",
+    "errors.log.enable": "true",
+    "errors.deadletterqueue.topic.name": "mmtext.public.movie_outbox_events.dlq",
+    "errors.deadletterqueue.topic.replication.factor": "3",
+    "errors.deadletterqueue.context.headers.enable": "true"
+
+  }
+}
+
+###
+
+###
