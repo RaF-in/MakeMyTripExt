@@ -3,46 +3,30 @@ package com.mmtext.supplierpollingservice.domain;
 import com.mmtext.supplierpollingservice.dto.InventoryItem;
 import com.mmtext.supplierpollingservice.enums.PollStatus;
 import com.mmtext.supplierpollingservice.enums.SupplierType;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
 import java.util.List;
 
-@Table("poll_result")
 public class PollResult {
 
     // Removed @GeneratedValue.
     // R2DBC handles ID generation internally if the database column is set to IDENTITY/SERIAL.
-    @Id
+
     private Long id;
-
-    @Column("supplier_id")
     private String supplierId;
-
-    @Column("supplier_type")
     private SupplierType supplierType;
 
     // Storing List<InventoryItem> might require a custom converter or JSONB mapping
     // depending on your database setup. R2DBC needs a way to map complex types.
     private List<InventoryItem> items;
-
-    @Column("new_etag")
     private String newEtag;
-
-    @Column("new_cursor")
     private String newCursor;
-
-    @Column("polled_at")
     private Instant polledAt;
 
     // 'modified' is a boolean, fine as is
     private boolean modified;
 
     private PollStatus status;
-
-    @Column("error_message")
     private String errorMessage;
 
     public static PollResult notModified(String supplierId, SupplierType type) {

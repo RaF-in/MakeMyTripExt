@@ -4,7 +4,9 @@ import com.mmtext.supplierpollingservice.enums.SupplierType;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,13 +39,18 @@ public class VolatilityAnalyzer {
     }
 
     private boolean isPeakBookingTime() {
-        LocalDateTime now = LocalDateTime.now();
-        DayOfWeek day = now.getDayOfWeek();
-        int hour = now.getHour();
+        Instant instant = Instant.now();
+        ZonedDateTime zdt = instant.atZone(ZoneId.systemDefault());
 
-        // Weekdays 9 AM - 10 PM
-        return day != DayOfWeek.SATURDAY &&
-                day != DayOfWeek.SUNDAY &&
-                hour >= 9 && hour <= 22;
+        DayOfWeek dayOfWeek = zdt.getDayOfWeek();
+        int hour = zdt.getHour();
+
+        boolean isBusinessHours =
+                dayOfWeek != DayOfWeek.SATURDAY &&
+                        dayOfWeek != DayOfWeek.SUNDAY &&
+                        hour >= 9 && hour <= 22;
+
+        return isBusinessHours;
+
     }
 }

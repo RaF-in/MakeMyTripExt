@@ -1,7 +1,6 @@
 package com.mmtext.supplierpollingservice.dto;
 
 import com.mmtext.supplierpollingservice.enums.SupplierType;
-import jdk.jshell.Snippet;
 
 import java.math.BigDecimal;
 import java.time.Instant;

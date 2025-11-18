@@ -1,8 +1,6 @@
 package com.mmtext.supplierpollingservice.config;
 
-import com.mmtext.supplierpollingservice.poller.AirlineSupplierPoller;
-import com.mmtext.supplierpollingservice.poller.BusSupplierPoller;
-import com.mmtext.supplierpollingservice.poller.HotelSupplierPoller;
+
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
@@ -57,61 +55,5 @@ public class ReactivePollingConfig {
         return WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .exchangeStrategies(strategies);
-    }
-//
-//    /**
-//     * Define supplier configurations
-//     * In production: load from database or config service
-//     */
-//    @Bean
-//    public PollingConfig airlineSupplierConfig() {
-//        return PollingConfig.airlineDefault(
-//                "airline-amadeus-1",
-//                "https://api.amadeus.com" // Mock URL
-//        );
-//    }
-//
-//    @Bean
-//    public PollingConfig hotelSupplierConfig() {
-//        return PollingConfig.hotelDefault(
-//                "hotel-booking-1",
-//                "https://api.booking.com" // Mock URL
-//        );
-//    }
-//
-//    @Bean
-//    public PollingConfig busSupplierConfig() {
-//        PollingConfig config = new PollingConfig();
-//        config.setSupplierId("bus-amadeus-1");
-//        config.setSupplierType(SupplierType.BUS);
-//        config.setBaseUrl("https://api.redbus.in");
-//        config.setNormalIntervalMs(180000L); // 3 min
-//        config.setPeakIntervalMs(60000L);    // 1 min
-//        config.setMaxRetries(3);
-//        config.setTimeoutMs(8000L);
-//        config.setSupportsEtag(false);
-//        config.setSupportsIfModifiedSince(true);
-//        return config;
-//    }
-
-    /**
-     * Create poller instances
-     */
-    @Bean
-    public AirlineSupplierPoller airlinePoller(
-            WebClient.Builder builder, PollingConfig airlineSupplierConfig) {
-        return new AirlineSupplierPoller(builder, airlineSupplierConfig);
-    }
-
-    @Bean
-    public HotelSupplierPoller hotelPoller(
-            WebClient.Builder builder, PollingConfig hotelSupplierConfig) {
-        return new HotelSupplierPoller(builder, hotelSupplierConfig);
-    }
-
-    @Bean
-    public BusSupplierPoller busPoller(
-            WebClient.Builder builder, PollingConfig busSupplierConfig) {
-        return new BusSupplierPoller(builder, busSupplierConfig);
     }
 }

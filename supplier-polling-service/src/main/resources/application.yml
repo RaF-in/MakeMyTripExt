@@ -1,0 +1,54 @@
+
+spring:
+  application:
+    name: supplier-polling-service
+
+  data:
+    redis:
+      host: redis
+      port: 6379
+      # Connection pool settings
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+      # Timeout settings
+      timeout: 60000ms
+      connect-timeout: 2000ms
+
+  task:
+    scheduling:
+      pool:
+        size: 20 # Thread pool for @Scheduled tasks
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.booking.reactive: DEBUG
+    reactor.netty: INFO
+    io.github.resilience4j: DEBUG
+
+# Resilience4j Circuit Breaker Config
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 60s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 15s
+
+# Reactor Netty Configuration
+reactor:
+  netty:
+    ioWorkerCount: 4  # Number of I/O threads
+    ioSelectCount: 2  # Number of selector threads

@@ -5,8 +5,6 @@ import com.mmtext.supplierpollingservice.domain.SupplierState;
 import com.mmtext.supplierpollingservice.enums.PollStatus;
 import com.mmtext.supplierpollingservice.enums.SupplierHealth;
 import com.mmtext.supplierpollingservice.poller.SupplierPoller;
-import com.mmtext.supplierpollingservice.repo.PollResultRepository;
-import com.mmtext.supplierpollingservice.repo.SupplierStateRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,32 +15,39 @@ import reactor.core.scheduler.Schedulers;
 public class SupplierPollingOrchestrator {
 
     private static final Logger log = LoggerFactory.getLogger(SupplierPollingOrchestrator.class);
-    private final SupplierStateRepository stateRepository;
-    private final PollResultRepository resultRepository;
+
+    // Replaced Repositories with dedicated Redis Cache Services
+    private final SupplierStateCacheService stateCacheService;
+    private final PollResultCacheService resultCacheService;
     private final SupplierCircuitBreakerService circuitBreakerService;
 
-    public SupplierPollingOrchestrator(SupplierStateRepository stateRepository, PollResultRepository resultRepository, SupplierCircuitBreakerService circuitBreakerService) {
-        this.stateRepository = stateRepository;
-        this.resultRepository = resultRepository;
+    public SupplierPollingOrchestrator(
+            SupplierStateCacheService stateCacheService,
+            PollResultCacheService resultCacheService,
+            SupplierCircuitBreakerService circuitBreakerService) {
+        this.stateCacheService = stateCacheService;
+        this.resultCacheService = resultCacheService;
         this.circuitBreakerService = circuitBreakerService;
     }
 
     /**
-     * Executes single poll operation for a supplier
-     * This is called by scheduled workers, NOT continuous reactive stream
+     * Executes single poll operation for a supplier.
+     * Uses Redis for fetching/updating SupplierState.
      */
     public Mono<PollResult> executePoll(SupplierPoller poller) {
         String supplierId = poller.supplierId();
 
         log.debug("Starting poll execution for supplier: {}", supplierId);
 
-        return stateRepository.findById(supplierId)
+        // stateCacheService.getStateById() replaces stateRepository.findById()
+        return stateCacheService.getStateById(supplierId)
                 .defaultIfEmpty(createDefaultState(supplierId))
                 .flatMap(state -> {
 
                     // Check if supplier should be backed off due to failures
-                    if (state.shouldBackoff()) {
-                        long backoffDelay = state.getBackoffDelayMs();
+                    int consecutiveFailures = state.getConsecutiveFailures();
+                    if (consecutiveFailures >= 3) {
+                        long backoffDelay = Math.min((long) Math.pow(2, consecutiveFailures) * 5000, 300000); // Max 5 min
                         long timeSinceLastPoll = System.currentTimeMillis() -
                                 state.getLastPolledAt().toEpochMilli();
 
@@ -65,7 +70,7 @@ public class SupplierPollingOrchestrator {
     }
 
     /**
-     * Handles poll result: updates state, persists result
+     * Handles poll result: updates state, persists result using Redis services.
      */
     private Mono<PollResult> handlePollResult(PollResult result, SupplierState state) {
 
@@ -92,9 +97,10 @@ public class SupplierPollingOrchestrator {
                     state.getSupplierId(), result.getErrorMessage());
         }
 
-        // Persist state and result
-        return stateRepository.save(state)
-                .then(resultRepository.save(result))
+        // Persist state and result using Redis services (replace repository saves)
+        // Note: The execution order is preserved via 'then'.
+        return stateCacheService.saveState(state) // stateRepository.save(state)
+                .then(resultCacheService.savePollResult(result)) // resultRepository.save(result)
                 .thenReturn(result);
     }
 

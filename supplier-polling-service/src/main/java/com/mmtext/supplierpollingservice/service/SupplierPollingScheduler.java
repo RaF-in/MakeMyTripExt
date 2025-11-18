@@ -1,13 +1,22 @@
 package com.mmtext.supplierpollingservice.service;
 
 
+import com.mmtext.supplierpollingservice.config.PollingConfig;
+import com.mmtext.supplierpollingservice.enums.SupplierType;
+import com.mmtext.supplierpollingservice.poller.AirlineSupplierPoller;
+import com.mmtext.supplierpollingservice.poller.BusSupplierPoller;
+import com.mmtext.supplierpollingservice.poller.HotelSupplierPoller;
 import com.mmtext.supplierpollingservice.poller.SupplierPoller;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -19,25 +28,36 @@ public class SupplierPollingScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(SupplierPollingScheduler.class);
     private final SupplierPollingOrchestrator orchestrator;
-    private final List<SupplierPoller> allPollers;
+    private final List<SupplierPoller> allPollers = new ArrayList<>();
+
+    private final WebClient.Builder webClientBuilder;
 
     private final ConcurrentHashMap<String, ScheduledExecutorService> schedulers =
             new ConcurrentHashMap<>();
 
-    public SupplierPollingScheduler(SupplierPollingOrchestrator orchestrator, List<SupplierPoller> allPollers) {
+    public SupplierPollingScheduler(
+            SupplierPollingOrchestrator orchestrator,
+            WebClient.Builder webClientBuilder
+    ) {
         this.orchestrator = orchestrator;
-        this.allPollers = allPollers;
+        this.webClientBuilder = webClientBuilder;
+
+        // Hard-code pollers directly here
+        allPollers.add(new AirlineSupplierPoller(this.webClientBuilder, airlineSupplierConfig()));
+        allPollers.add(new HotelSupplierPoller(this.webClientBuilder, hotelSupplierConfig()));
+        allPollers.add(new BusSupplierPoller(this.webClientBuilder, busSupplierConfig()));
     }
 
     @PostConstruct
     public void initializeSchedulers() {
         log.info("Initializing polling schedulers for {} suppliers", allPollers.size());
 
-        // Each supplier gets its own scheduler with custom interval
         for (SupplierPoller poller : allPollers) {
             scheduleSupplierPolling(poller);
         }
     }
+
+
 
     /**
      * Schedule polling for individual supplier
@@ -157,6 +177,37 @@ public class SupplierPollingScheduler {
             scheduler.shutdown();
             log.info("Stopped polling for supplier: {}", supplierId);
         }
+    }
+
+
+    public PollingConfig airlineSupplierConfig() {
+        return PollingConfig.airlineDefault(
+                "airline-amadeus-1",
+                "https://api.amadeus.com" // Mock URL
+        );
+    }
+
+
+    public PollingConfig hotelSupplierConfig() {
+        return PollingConfig.hotelDefault(
+                "hotel-booking-1",
+                "https://api.booking.com" // Mock URL
+        );
+    }
+
+
+    public PollingConfig busSupplierConfig() {
+        PollingConfig config = new PollingConfig();
+        config.setSupplierId("bus-amadeus-1");
+        config.setSupplierType(SupplierType.BUS);
+        config.setBaseUrl("https://api.redbus.in");
+        config.setNormalIntervalMs(180000L); // 3 min
+        config.setPeakIntervalMs(60000L);    // 1 min
+        config.setMaxRetries(3);
+        config.setTimeoutMs(8000L);
+        config.setSupportsEtag(false);
+        config.setSupportsIfModifiedSince(true);
+        return config;
     }
 }
 
