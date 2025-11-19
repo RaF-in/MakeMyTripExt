@@ -1,5 +1,6 @@
 package com.mmtext.listingservice.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -14,7 +15,8 @@ public class RoomType {
     private String roomType;
     private int totalRooms;
     private double pricePerNight;
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JsonIgnore
     private Hotel hotel;
     private String ref;
 

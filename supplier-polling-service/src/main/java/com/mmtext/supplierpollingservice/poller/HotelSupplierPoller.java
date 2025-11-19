@@ -55,25 +55,29 @@ public class HotelSupplierPoller extends BaseReactivePoller {
                     List<InventoryItem> items = new ArrayList<>();
                     String nextCursor = null;
 
-                    JsonNode hotels = body.get("hotels");
-                    if (hotels != null && hotels.isArray()) {
-                        hotels.forEach(hotel -> {
+                    if (body.isArray()) {
+                        for (JsonNode element : body) {
+                            JsonNode hotel = element.get("hotel");
+                            JsonNode roomTypeNodes = hotel.get("roomTypes");
+                            log.info("roomType nodes are {}",roomTypeNodes.toString());
+                            log.info("Hotels {}  received at poller", hotel);
                             RoomInventoryItem item = new RoomInventoryItem();
-                            item.setId(hotel.get("id").asText());
-                            item.setType(SupplierType.HOTEL);
-                            //item.setOrigin(hotel.get("city").asText());
-                            //item.setDestination(hotel.get("city").asText());
-                            item.setDepartureTime(Instant.parse(hotel.get("departure").asText()));
-                            item.setPrice(new BigDecimal(hotel.get("pricePerNight").asText()));
-                            //item.setSeatsAvailable(hotel.get("roomsAvailable").asInt());
-                            item.setSupplierRef(hotel.get("ref").asText());
-                            item.setUpdatedAt(Instant.now());
-                            item.setRoomType(hotel.get("roomType").asText());
-                            JsonNode hotelInfo = hotel.get("hotel");
-                            item.setHotelId(hotelInfo.get("id").asText());
+                            for (JsonNode roomTypeNode : roomTypeNodes) {
+                                item.setId(hotel.get("id").asText());
+                                item.setType(SupplierType.HOTEL);
+                                //item.setOrigin(hotel.get("city").asText());
+                                //item.setDestination(hotel.get("city").asText());
+                                //item.setDepartureTime(Instant.parse(hotel.get("departure").asText()));
+                                item.setPrice(new BigDecimal(roomTypeNode.get("pricePerNight").asText()));
+                                //item.setSeatsAvailable(hotel.get("roomsAvailable").asInt());
+                                item.setSupplierRef(hotel.get("ref").asText());
+                                item.setUpdatedAt(Instant.now());
+                                item.setRoomType(roomTypeNode.get("roomType").asText());
+                                item.setHotelId(hotel.get("id").asText());
 
-                            items.add(item);
-                        });
+                                items.add(item);
+                            }
+                        }
                     }
 
                     // Extract pagination cursor for next poll
@@ -84,6 +88,7 @@ public class HotelSupplierPoller extends BaseReactivePoller {
 
                     log.info("Parsed {} hotels from supplier: {}, nextCursor: {}",
                             items.size(), supplierId(), nextCursor);
+                    log.info("item are {}", items);
 
                     PollResult result = PollResult.success(
                             supplierId(),

@@ -3,6 +3,7 @@ package com.mmtext.listingservice.service;
 import com.mmtext.listingservice.dto.HotelResponseDTO;
 import com.mmtext.listingservice.mapper.HotelMapper;
 import com.mmtext.listingservice.model.Hotel;
+import com.mmtext.listingservice.model.RoomType;
 import com.mmtext.listingservice.repo.HotelRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,11 @@ public class HotelService {
     }
 
     public HotelResponseDTO save(Hotel hotel) {
+        if (hotel.getRoomTypes() != null) {
+            for (RoomType rt : hotel.getRoomTypes()) {
+                rt.setHotel(hotel);
+            }
+        }
         hotelRepo.save(hotel);
         return HotelMapper.toDTO(hotel);
     }

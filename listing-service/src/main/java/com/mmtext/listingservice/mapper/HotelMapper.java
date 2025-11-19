@@ -12,7 +12,6 @@ public class HotelMapper {
         List<HotelResponseDTO> dtos = new ArrayList<>();
         hotels.forEach(hotel -> {
             HotelResponseDTO dto = new HotelResponseDTO();
-            dto.setRoomTypes(hotel.getRoomTypes());
             dto.setHotel(hotel);
             dtos.add(dto);
         });
@@ -21,7 +20,6 @@ public class HotelMapper {
 
     public static HotelResponseDTO toDTO(Hotel hotel) {
         HotelResponseDTO dto = new HotelResponseDTO();
-        dto.setRoomTypes(hotel.getRoomTypes());
         dto.setHotel(hotel);
         return dto;
     }

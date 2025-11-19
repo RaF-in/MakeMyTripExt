@@ -43,9 +43,9 @@ public class SupplierPollingScheduler {
         this.webClientBuilder = webClientBuilder;
 
         // Hard-code pollers directly here
-        allPollers.add(new AirlineSupplierPoller(this.webClientBuilder, airlineSupplierConfig()));
+        //allPollers.add(new AirlineSupplierPoller(this.webClientBuilder, airlineSupplierConfig()));
         allPollers.add(new HotelSupplierPoller(this.webClientBuilder, hotelSupplierConfig()));
-        allPollers.add(new BusSupplierPoller(this.webClientBuilder, busSupplierConfig()));
+        //allPollers.add(new BusSupplierPoller(this.webClientBuilder, busSupplierConfig()));
     }
 
     @PostConstruct
@@ -110,7 +110,7 @@ public class SupplierPollingScheduler {
         if (supplierId.contains("airline")) {
             return 120000; // 2 minutes for airlines
         } else if (supplierId.contains("hotel")) {
-            return 300000; // 5 minutes for hotels
+            return 60000; // 5 minutes for hotels
         } else {
             return 180000; // 3 minutes for buses
         }
@@ -204,7 +204,7 @@ public class SupplierPollingScheduler {
         config.setNormalIntervalMs(180000L); // 3 min
         config.setPeakIntervalMs(60000L);    // 1 min
         config.setMaxRetries(3);
-        config.setTimeoutMs(8000L);
+        config.setTimeoutMs(180000L);
         config.setSupportsEtag(false);
         config.setSupportsIfModifiedSince(true);
         return config;

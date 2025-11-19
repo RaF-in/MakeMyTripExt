@@ -4,6 +4,8 @@ import com.mmtext.listingservice.dto.HotelResponseDTO;
 import com.mmtext.listingservice.mapper.HotelMapper;
 import com.mmtext.listingservice.model.Hotel;
 import com.mmtext.listingservice.service.HotelService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ import java.util.Objects;
 @RestController
 @RequestMapping("/api/admin/hotel")
 public class HotelController {
+    private static final Logger log = LoggerFactory.getLogger(HotelController.class);
     @Autowired
     HotelService hotelService;
     @GetMapping
@@ -39,6 +42,7 @@ public class HotelController {
         List<Hotel> hotels;
 
         // 🔥 If client sent If-Modified-Since ⇒ filter by updatedAt > client value
+        log.info("polling after time {}", clientLastModified);
         if (clientLastModified != null) {
             hotels = hotelService.getHotelsUpdatedAfter(clientLastModified);
             Instant lastModified = hotels.stream()

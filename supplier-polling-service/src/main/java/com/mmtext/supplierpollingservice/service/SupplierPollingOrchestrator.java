@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Instant;
+
 @Service
 public class SupplierPollingOrchestrator {
 
@@ -111,6 +113,7 @@ public class SupplierPollingOrchestrator {
         supplierState.setSupplierId(supplierId);
         supplierState.setHealth(SupplierHealth.HEALTHY);
         supplierState.setConsecutiveFailures(0);
+        supplierState.setLastModifiedAt(Instant.now());
         return supplierState;
     }
 }

@@ -46,7 +46,7 @@ public class PollingConfig {
         config.setLowDemandIntervalMs(1800000L);
         config.setMaxRetries(3);
         config.setTimeoutMs(15000L);
-        config.setSupportsEtag(true);
+        config.setSupportsEtag(false);
         config.setSupportsIfModifiedSince(true);
         config.setSupportsPagination(false);
         return config;

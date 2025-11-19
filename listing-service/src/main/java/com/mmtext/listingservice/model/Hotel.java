@@ -21,6 +21,7 @@ public class Hotel {
     private List<RoomType> roomTypes;
     private Instant createdAt;
     private Instant updatedAt;
+    private String ref;
 
     public Long getId() {
         return id;
@@ -92,5 +93,13 @@ public class Hotel {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getRef() {
+        return ref;
+    }
+
+    public void setRef(String ref) {
+        this.ref = ref;
     }
 }

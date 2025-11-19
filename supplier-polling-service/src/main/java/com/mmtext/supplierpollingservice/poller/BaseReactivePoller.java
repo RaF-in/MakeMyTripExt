@@ -76,6 +76,7 @@ public abstract class BaseReactivePoller implements SupplierPoller {
                 .flatMap(response -> {
                     HttpStatus status = (HttpStatus) response.statusCode();
                     log.info("Got response from supplier {}", response);
+                    log.info("status code {}", status);
                     // ⬇️ Extract Last-Modified header
                     String lastModifiedHeader =
                             response.headers().asHttpHeaders().getFirst(HttpHeaders.LAST_MODIFIED);
