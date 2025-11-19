@@ -183,7 +183,7 @@ public class SupplierPollingScheduler {
     public PollingConfig airlineSupplierConfig() {
         return PollingConfig.airlineDefault(
                 "airline-amadeus-1",
-                "https://api.amadeus.com" // Mock URL
+                "http://listing-service:4000"
         );
     }
 
@@ -191,7 +191,7 @@ public class SupplierPollingScheduler {
     public PollingConfig hotelSupplierConfig() {
         return PollingConfig.hotelDefault(
                 "hotel-booking-1",
-                "https://api.booking.com" // Mock URL
+                "http://listing-service:4000"
         );
     }
 
@@ -200,7 +200,7 @@ public class SupplierPollingScheduler {
         PollingConfig config = new PollingConfig();
         config.setSupplierId("bus-amadeus-1");
         config.setSupplierType(SupplierType.BUS);
-        config.setBaseUrl("https://api.redbus.in");
+        config.setBaseUrl("http://listing-service:4000");
         config.setNormalIntervalMs(180000L); // 3 min
         config.setPeakIntervalMs(60000L);    // 1 min
         config.setMaxRetries(3);

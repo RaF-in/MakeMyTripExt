@@ -6,14 +6,19 @@ import com.mmtext.listingservice.mapper.AirCraftMapper;
 import com.mmtext.listingservice.mapper.BusMapper;
 import com.mmtext.listingservice.model.AirCraft;
 import com.mmtext.listingservice.model.Bus;
+import com.mmtext.listingservice.model.Hotel;
 import com.mmtext.listingservice.model.Transport;
 import com.mmtext.listingservice.service.TransportServiceMmtExt;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/admin/transport")
@@ -21,9 +26,42 @@ public class TransportController {
     @Autowired
     TransportServiceMmtExt transportServiceMmtExt;
     @GetMapping
-    public ResponseEntity<List<Transport>> getAllTransports() {
-        return ResponseEntity.ok().body(transportServiceMmtExt.getAllTransports());
+    public ResponseEntity<List<Transport>> getAllTransports(
+            @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
+            @RequestHeader(value = HttpHeaders.IF_MODIFIED_SINCE, required = false) String ifModifiedSince
+    ) {
+
+        Instant clientLastModified = null;
+
+        // Convert If-Modified-Since header into Instant
+        if (ifModifiedSince != null) {
+            try {
+                clientLastModified = Instant.from(
+                        DateTimeFormatter.RFC_1123_DATE_TIME.parse(ifModifiedSince)
+                );
+            } catch (Exception ignored) {}
+        }
+
+        List<Transport> transports;
+
+        // If client sent If-Modified-Since ⇒ filter using updatedAt > client timestamp
+        if (clientLastModified != null) {
+            transports = transportServiceMmtExt.getTransportsUpdatedAfter(clientLastModified);
+            Instant lastModified = transports.stream()
+                    .map(Transport::getUpdatedAt)       // you must have updatedAt on Hotel entity
+                    .filter(Objects::nonNull)
+                    .max(Instant::compareTo)
+                    .orElse(Instant.now());
+            return ResponseEntity.ok()
+                    .lastModified(lastModified.toEpochMilli())
+                    .body(transports);
+        }
+
+        // Otherwise return full data
+        transports = transportServiceMmtExt.getAllTransports();
+        return ResponseEntity.ok().body(transports);
     }
+
     @GetMapping(path="/airCraft")
     public ResponseEntity<List<AirCraft>> getAllAirCrafts() {
         return ResponseEntity.ok().body(transportServiceMmtExt.getAllAirCrafts());

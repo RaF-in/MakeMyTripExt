@@ -2,7 +2,8 @@ package com.mmtext.listingservice.model;
 
 import jakarta.persistence.*;
 
-import java.time.OffsetDateTime;
+import java.math.BigDecimal;
+import java.time.Instant;
 
 @Entity
 public class TransportSchedule {
@@ -12,10 +13,13 @@ public class TransportSchedule {
     private String fromLocation;
     private String toLocation;
     private String description;
-    private OffsetDateTime departureTime;
-    private OffsetDateTime arrivalTime;
+    private Instant departureTime;
+    private Instant arrivalTime;
     @ManyToOne
     private Transport transport;
+
+    private BigDecimal price;
+    private String ref;
 
     public Long getId() {
         return id;
@@ -49,19 +53,19 @@ public class TransportSchedule {
         this.description = description;
     }
 
-    public OffsetDateTime getDepartureTime() {
+    public Instant getDepartureTime() {
         return departureTime;
     }
 
-    public void setDepartureTime(OffsetDateTime departureTime) {
+    public void setDepartureTime(Instant departureTime) {
         this.departureTime = departureTime;
     }
 
-    public OffsetDateTime getArrivalTime() {
+    public Instant getArrivalTime() {
         return arrivalTime;
     }
 
-    public void setArrivalTime(OffsetDateTime arrivalTime) {
+    public void setArrivalTime(Instant arrivalTime) {
         this.arrivalTime = arrivalTime;
     }
 
@@ -71,5 +75,21 @@ public class TransportSchedule {
 
     public void setTransport(Transport transport) {
         this.transport = transport;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    public String getRef() {
+        return ref;
+    }
+
+    public void setRef(String ref) {
+        this.ref = ref;
     }
 }

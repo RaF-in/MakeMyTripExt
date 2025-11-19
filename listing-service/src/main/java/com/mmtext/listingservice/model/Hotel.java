@@ -2,6 +2,7 @@ package com.mmtext.listingservice.model;
 
 import jakarta.persistence.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -18,6 +19,8 @@ public class Hotel {
     private List<String> amenities;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "hotel")
     private List<RoomType> roomTypes;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public Long getId() {
         return id;
@@ -73,5 +76,21 @@ public class Hotel {
 
     public void setRoomTypes(List<RoomType> roomTypes) {
         this.roomTypes = roomTypes;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

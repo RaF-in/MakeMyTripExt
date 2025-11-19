@@ -1,4 +1,32 @@
 services:
+  postgres:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: db
+    networks:
+      - mmtext_network
+    command: [ "postgres", "-c", "wal_level=logical", "-c", "wal_keep_size=256", "-c", "max_slot_wal_keep_size=1024" ]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  listing-service:
+    build: ./listing-service
+    container_name: listing-service
+    ports:
+      - "4000:4000"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=admin
+
+    depends_on:
+      - postgres
+    networks:
+      - mmtext_network
   supplier-polling-service:
     build: ./supplier-polling-service
     container_name: supplier-polling-service
@@ -8,6 +36,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      listing-service:
+        condition: service_started
     networks:
       - mmtext_network
 
@@ -29,6 +59,7 @@ services:
 
 volumes:
   redis_data:
+  postgres_data:
 
 networks:
   mmtext_network:

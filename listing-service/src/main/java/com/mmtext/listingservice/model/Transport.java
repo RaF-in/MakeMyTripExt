@@ -2,6 +2,7 @@ package com.mmtext.listingservice.model;
 
 import jakarta.persistence.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -14,6 +15,8 @@ public abstract class Transport {
     private String description;
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "transport")
     private List<TransportSchedule> schedules;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public Long getId() {
         return id;
@@ -41,6 +44,22 @@ public abstract class Transport {
 
     public List<TransportSchedule> getSchedules() {
         return schedules;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public void setSchedules(List<TransportSchedule> schedules) {

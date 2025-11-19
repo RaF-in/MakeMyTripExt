@@ -10,6 +10,7 @@ import com.mmtext.listingservice.repo.TransportRepoMmtExt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -87,5 +88,9 @@ public class TransportServiceMmtExt {
     private boolean deleteTransportById(Long id) {
         transportRepoMmtExt.deleteById(id);
         return !transportRepoMmtExt.existsById(id);
+    }
+
+    public List<Transport> getTransportsUpdatedAfter(Instant lastModified) {
+        return transportRepoMmtExt.findByUpdatedAtGreaterThan(lastModified);
     }
 }

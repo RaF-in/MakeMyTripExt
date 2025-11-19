@@ -5,10 +5,14 @@ import com.mmtext.listingservice.mapper.HotelMapper;
 import com.mmtext.listingservice.model.Hotel;
 import com.mmtext.listingservice.service.HotelService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/admin/hotel")
@@ -16,9 +20,42 @@ public class HotelController {
     @Autowired
     HotelService hotelService;
     @GetMapping
-    public ResponseEntity<List<HotelResponseDTO>> getAllHotels() {
-        return ResponseEntity.ok().body(HotelMapper.toDTOList(hotelService.getAllHotels()));
+    public ResponseEntity<List<HotelResponseDTO>> getAllHotels(
+            @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
+            @RequestHeader(value = HttpHeaders.IF_MODIFIED_SINCE, required = false) String ifModifiedSince
+    ) {
+
+        Instant clientLastModified = null;
+
+        // Convert If-Modified-Since header to Instant
+        if (ifModifiedSince != null) {
+            try {
+                clientLastModified = Instant.from(
+                        DateTimeFormatter.RFC_1123_DATE_TIME.parse(ifModifiedSince)
+                );
+            } catch (Exception ignored) {}
+        }
+
+        List<Hotel> hotels;
+
+        // 🔥 If client sent If-Modified-Since ⇒ filter by updatedAt > client value
+        if (clientLastModified != null) {
+            hotels = hotelService.getHotelsUpdatedAfter(clientLastModified);
+            Instant lastModified = hotels.stream()
+                    .map(Hotel::getUpdatedAt)       // you must have updatedAt on Hotel entity
+                    .filter(Objects::nonNull)
+                    .max(Instant::compareTo)
+                    .orElse(Instant.now());         // fallback if no timestamps
+            return ResponseEntity.ok()
+                    .lastModified(lastModified.toEpochMilli())
+                    .body(
+                            HotelMapper.toDTOList(hotels)
+                    );
+        }
+        hotels = hotelService.getAllHotels();
+        return ResponseEntity.ok().body(HotelMapper.toDTOList(hotels));
     }
+
     @PostMapping
     public ResponseEntity<HotelResponseDTO> createHotel(@RequestBody Hotel hotel) {
         return ResponseEntity.ok().body(hotelService.save(hotel));

@@ -2,6 +2,7 @@ package com.mmtext.listingservice.model;
 
 import jakarta.persistence.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -15,9 +16,12 @@ public class RoomType {
     private double pricePerNight;
     @ManyToOne(fetch = FetchType.LAZY)
     private Hotel hotel;
+    private String ref;
 
     @ElementCollection
     private List<String> facilities;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public Long getId() {
         return id;
@@ -65,6 +69,30 @@ public class RoomType {
 
     public void setHotel(Hotel hotel) {
         this.hotel = hotel;
+    }
+
+    public String getRef() {
+        return ref;
+    }
+
+    public void setRef(String ref) {
+        this.ref = ref;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }
 

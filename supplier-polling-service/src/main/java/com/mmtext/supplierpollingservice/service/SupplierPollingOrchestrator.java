@@ -88,6 +88,8 @@ public class SupplierPollingOrchestrator {
                 state.setCursor(result.getNewCursor());
             }
 
+            state.setLastModifiedAt(result.getPolledAt());
+
             log.info("Poll successful for supplier: {} ({})",
                     state.getSupplierId(), result.getStatus());
 

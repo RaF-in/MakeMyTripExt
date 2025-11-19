@@ -12,6 +12,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
@@ -66,23 +67,52 @@ public abstract class BaseReactivePoller implements SupplierPoller {
      * Handles HTTP response with proper status code checking
      */
     protected Mono<PollResult> handleResponse(
-            Mono<ClientResponse> responseMono, SupplierState state) {
+            Mono<ClientResponse> responseMono,
+            SupplierState state
+    ) {
 
         return responseMono
                 .timeout(Duration.ofMillis(config.getTimeoutMs()))
                 .flatMap(response -> {
                     HttpStatus status = (HttpStatus) response.statusCode();
+                    log.info("Got response from supplier {}", response);
+                    // ⬇️ Extract Last-Modified header
+                    String lastModifiedHeader =
+                            response.headers().asHttpHeaders().getFirst(HttpHeaders.LAST_MODIFIED);
 
-                    // 304 Not Modified - no changes
+                    Instant newLastModified = null;
+                    if (lastModifiedHeader != null) {
+                        try {
+                            newLastModified = Instant.from(
+                                    DateTimeFormatter.RFC_1123_DATE_TIME.parse(lastModifiedHeader)
+                            );
+                        } catch (Exception ex) {
+                            log.warn("Failed to parse Last-Modified header: {}", lastModifiedHeader);
+                        }
+                    }
+
+                    // Save lastModified in state
+                    if (newLastModified != null) {
+                        state.setLastModifiedAt(newLastModified);
+                    }
+
+                    // 304 Not Modified
                     if (status == HttpStatus.NOT_MODIFIED) {
                         log.info("Supplier {} returned 304 - no changes", supplierId());
-                        return Mono.just(PollResult.notModified(supplierId(), config.getSupplierType()));
+                        return Mono.just(
+                                PollResult.notModified(supplierId(), config.getSupplierType())
+                        );
                     }
 
                     // 200 OK - new data
                     if (status == HttpStatus.OK) {
-                        String newEtag = response.headers().asHttpHeaders().getFirst(HttpHeaders.ETAG);
-                        return parseResponseBody(response, newEtag);
+                        Instant finalNewLastModified = newLastModified;
+                        return parseResponseBody(response, null)
+                                .map(result -> {
+                                    // Store lastModified in poll result
+                                    result.setPolledAt(finalNewLastModified);
+                                    return result;
+                                });
                     }
 
                     // Error statuses
@@ -102,6 +132,7 @@ public abstract class BaseReactivePoller implements SupplierPoller {
                     ));
                 });
     }
+
 
     /**
      * Subclasses implement this to parse supplier-specific response format

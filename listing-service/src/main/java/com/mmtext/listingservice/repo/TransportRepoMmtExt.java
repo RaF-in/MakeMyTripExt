@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 
 @Repository
@@ -25,5 +26,5 @@ public interface TransportRepoMmtExt extends JpaRepository<Transport,Long> {
     boolean existsByAircraftCodeAndNotById(@Param("code") String code, @Param("id") Long id);
     @Query("SELECT COUNT(a) > 0 FROM Bus a WHERE a.busNum = :busNum AND a.id <> :id")
     boolean existsByBusNumAndNotById(@Param("busNum") String busNum, @Param("id") Long id);
-
+    List<Transport> findByUpdatedAtGreaterThan(Instant lastModified);
 }

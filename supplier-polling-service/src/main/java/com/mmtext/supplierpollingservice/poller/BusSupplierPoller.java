@@ -5,6 +5,7 @@ import com.mmtext.supplierpollingservice.config.PollingConfig;
 import com.mmtext.supplierpollingservice.domain.PollResult;
 import com.mmtext.supplierpollingservice.domain.SupplierState;
 import com.mmtext.supplierpollingservice.dto.InventoryItem;
+import com.mmtext.supplierpollingservice.dto.TransportInventoryItem;
 import com.mmtext.supplierpollingservice.enums.SupplierType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,15 +50,16 @@ public class BusSupplierPoller extends BaseReactivePoller {
                     JsonNode routes = body.get("routes");
                     if (routes != null && routes.isArray()) {
                         routes.forEach(route -> {
-                            InventoryItem item = new InventoryItem();
+                            TransportInventoryItem item = new TransportInventoryItem();
                             item.setId(route.get("id").asText());
                             item.setType(SupplierType.BUS);
-                            item.setOrigin(route.get("origin").asText());
-                            item.setDestination(route.get("destination").asText());
-                            item.setDepartureTime(Instant.parse(route.get("departure").asText()));
-                            item.setPrice(new BigDecimal(route.get("fare").asText()));
-                            item.setSeatsAvailable(route.get("seatsAvailable").asInt());
-                            item.setSupplierRef(route.get("supplierRef").asText());
+                            item.setOrigin(route.get("fromLocation").asText());
+                            item.setDestination(route.get("toLocation").asText());
+                            item.setDepartureTime(Instant.parse(route.get("departureTime").asText()));
+                            item.setArrivalTime(Instant.parse(route.get("arrivalTime").asText()));
+                            item.setPrice(new BigDecimal(route.get("price").asText()));
+                            //item.setSeatsAvailable(route.get("seatsAvailable").asInt());
+                            item.setSupplierRef(route.get("ref").asText());
                             item.setUpdatedAt(Instant.now());
                             items.add(item);
                         });

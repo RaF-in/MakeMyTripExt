@@ -5,6 +5,7 @@ import com.mmtext.supplierpollingservice.config.PollingConfig;
 import com.mmtext.supplierpollingservice.domain.PollResult;
 import com.mmtext.supplierpollingservice.domain.SupplierState;
 import com.mmtext.supplierpollingservice.dto.InventoryItem;
+import com.mmtext.supplierpollingservice.dto.TransportInventoryItem;
 import com.mmtext.supplierpollingservice.enums.SupplierType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,15 +51,16 @@ public class AirlineSupplierPoller extends BaseReactivePoller {
                     JsonNode flights = body.get("flights");
                     if (flights != null && flights.isArray()) {
                         flights.forEach(flight -> {
-                            InventoryItem item = new InventoryItem();
+                            TransportInventoryItem item = new TransportInventoryItem();
                             item.setId(flight.get("id").asText());
                             item.setType(SupplierType.AIRLINE);
-                            item.setOrigin(flight.get("origin").asText());
-                            item.setDestination(flight.get("destination").asText());
-                            item.setDepartureTime(Instant.parse(flight.get("departure").asText()));
+                            item.setOrigin(flight.get("fromLocation").asText());
+                            item.setDestination(flight.get("toLocation").asText());
+                            item.setDepartureTime(Instant.parse(flight.get("departureTime").asText()));
+                            item.setArrivalTime(Instant.parse(flight.get("arrivalTime").asText()));
                             item.setPrice(new BigDecimal(flight.get("price").asText()));
-                            item.setSeatsAvailable(flight.get("seatsAvailable").asInt());
-                            item.setSupplierRef(flight.get("supplierRef").asText());
+                            //item.setSeatsAvailable(flight.get("seatsAvailable").asInt());
+                            item.setSupplierRef(flight.get("ref").asText());
                             item.setUpdatedAt(Instant.now());
                             items.add(item);
                         });

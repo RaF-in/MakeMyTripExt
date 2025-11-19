@@ -5,6 +5,7 @@ import com.mmtext.supplierpollingservice.config.PollingConfig;
 import com.mmtext.supplierpollingservice.domain.PollResult;
 import com.mmtext.supplierpollingservice.domain.SupplierState;
 import com.mmtext.supplierpollingservice.dto.InventoryItem;
+import com.mmtext.supplierpollingservice.dto.RoomInventoryItem;
 import com.mmtext.supplierpollingservice.enums.SupplierType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +31,7 @@ public class HotelSupplierPoller extends BaseReactivePoller {
 
     @Override
     public Mono<PollResult> poll(SupplierState state) {
-        String path = buildPathWithCursor("/api/v1/hotels/availability", state.getCursor());
+        String path = buildPathWithCursor("/api/admin/hotel", state.getCursor());
 
         log.debug("Polling hotel supplier: {} at path: {}", supplierId(), path);
 
@@ -57,16 +58,20 @@ public class HotelSupplierPoller extends BaseReactivePoller {
                     JsonNode hotels = body.get("hotels");
                     if (hotels != null && hotels.isArray()) {
                         hotels.forEach(hotel -> {
-                            InventoryItem item = new InventoryItem();
+                            RoomInventoryItem item = new RoomInventoryItem();
                             item.setId(hotel.get("id").asText());
                             item.setType(SupplierType.HOTEL);
-                            item.setOrigin(hotel.get("city").asText());
-                            item.setDestination(hotel.get("city").asText());
+                            //item.setOrigin(hotel.get("city").asText());
+                            //item.setDestination(hotel.get("city").asText());
                             item.setDepartureTime(Instant.parse(hotel.get("departure").asText()));
-                            item.setPrice(new BigDecimal(hotel.get("rate").asText()));
-                            item.setSeatsAvailable(hotel.get("roomsAvailable").asInt());
-                            item.setSupplierRef(hotel.get("supplierRef").asText());
+                            item.setPrice(new BigDecimal(hotel.get("pricePerNight").asText()));
+                            //item.setSeatsAvailable(hotel.get("roomsAvailable").asInt());
+                            item.setSupplierRef(hotel.get("ref").asText());
                             item.setUpdatedAt(Instant.now());
+                            item.setRoomType(hotel.get("roomType").asText());
+                            JsonNode hotelInfo = hotel.get("hotel");
+                            item.setHotelId(hotelInfo.get("id").asText());
+
                             items.add(item);
                         });
                     }

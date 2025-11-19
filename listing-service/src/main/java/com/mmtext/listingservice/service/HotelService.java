@@ -7,6 +7,7 @@ import com.mmtext.listingservice.repo.HotelRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -25,5 +26,9 @@ public class HotelService {
     public Boolean delete(Long id) {
         hotelRepo.deleteById(id);
         return !hotelRepo.existsById(id);
+    }
+
+    public List<Hotel> getHotelsUpdatedAfter(Instant lastModified) {
+        return hotelRepo.findByUpdatedAtGreaterThan(lastModified);
     }
 }
