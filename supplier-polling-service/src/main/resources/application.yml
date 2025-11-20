@@ -22,7 +22,37 @@ spring:
     scheduling:
       pool:
         size: 20 # Thread pool for @Scheduled tasks
+  kafka:
+    # bootstrap-servers: localhost:9092
 
+    producer:
+      acks: all
+      retries: 5
+      batch-size: 32768
+      buffer-memory: 67108864
+      compression-type: snappy
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        linger.ms: 10
+
+    properties:
+      enable.idempotence: true
+      # This property guarantees that even if a producer sends a message multiple times due to a network issue, the Kafka broker will only write it once. This is crucial for avoiding duplicate data in your topic.
+      max.in.flight.requests.per.connection: 5
+      # This property controls how many message batches a producer can send to the broker without waiting for a confirmation (acknowledgment) for the previous ones.
+#    consumer:
+#      group-id: my-consumer-group
+#      auto-offset-reset: earliest         # or latest depending on use case
+#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#
+#      # Tuning consumer for high throughput
+#      fetch-min-size: 1                    # minimum fetch
+#      fetch-max-wait: 500                  # wait up to 500ms to send fetch request
+#      max-poll-records: 500                # maximum number of records per poll
+#      session-timeout-ms: 15000
+#      heartbeat-interval-ms: 5000
 server:
   port: 8080
 
@@ -52,3 +82,4 @@ reactor:
   netty:
     ioWorkerCount: 4  # Number of I/O threads
     ioSelectCount: 2  # Number of selector threads
+

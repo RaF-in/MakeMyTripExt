@@ -9,6 +9,8 @@ import com.mmtext.supplierpollingservice.dto.RoomInventoryItem;
 import com.mmtext.supplierpollingservice.enums.SupplierType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -24,14 +26,15 @@ import java.util.List;
 public class HotelSupplierPoller extends BaseReactivePoller {
 
     private static final Logger log = LoggerFactory.getLogger(HotelSupplierPoller.class);
-
+    @Autowired
+    private KafkaTemplate<String, RoomInventoryItem> kafkaTemplate;
     public HotelSupplierPoller(WebClient.Builder webClientBuilder, PollingConfig config) {
         super(webClientBuilder, config);
     }
 
     @Override
     public Mono<PollResult> poll(SupplierState state) {
-        String path = buildPathWithCursor("/api/admin/hotel", state.getCursor());
+        String path = buildPathWithCursor("/api/admin/roomType", state.getCursor());
 
         log.debug("Polling hotel supplier: {} at path: {}", supplierId(), path);
 
@@ -57,26 +60,21 @@ public class HotelSupplierPoller extends BaseReactivePoller {
 
                     if (body.isArray()) {
                         for (JsonNode element : body) {
-                            JsonNode hotel = element.get("hotel");
-                            JsonNode roomTypeNodes = hotel.get("roomTypes");
-                            log.info("roomType nodes are {}",roomTypeNodes.toString());
-                            log.info("Hotels {}  received at poller", hotel);
+                            JsonNode hotelId = element.get("hotelId");
+                            JsonNode roomTypeNode = element.get("roomType");
+                            JsonNode hotelRefNode = element.get("hotelRef");
+                            log.info("roomType nodes are {}",roomTypeNode.toString());
+                            log.info("Hotel id {}  received at poller", hotelId);
                             RoomInventoryItem item = new RoomInventoryItem();
-                            for (JsonNode roomTypeNode : roomTypeNodes) {
-                                item.setId(hotel.get("id").asText());
-                                item.setType(SupplierType.HOTEL);
-                                //item.setOrigin(hotel.get("city").asText());
-                                //item.setDestination(hotel.get("city").asText());
-                                //item.setDepartureTime(Instant.parse(hotel.get("departure").asText()));
-                                item.setPrice(new BigDecimal(roomTypeNode.get("pricePerNight").asText()));
-                                //item.setSeatsAvailable(hotel.get("roomsAvailable").asInt());
-                                item.setSupplierRef(hotel.get("ref").asText());
-                                item.setUpdatedAt(Instant.now());
-                                item.setRoomType(roomTypeNode.get("roomType").asText());
-                                item.setHotelId(hotel.get("id").asText());
-
-                                items.add(item);
-                            }
+                            item.setId(hotelId.asText());
+                            item.setType(SupplierType.HOTEL);
+                            item.setPrice(new BigDecimal(roomTypeNode.get("pricePerNight").asText()));
+                            item.setSupplierRef(hotelRefNode.asText());
+                            item.setUpdatedAt(Instant.now());
+                            item.setRoomType(roomTypeNode.get("roomType").asText());
+                            item.setHotelId(hotelId.asText());
+                            kafkaTemplate.send("normalize.hotel_info", item.getHotelId(), item);
+                            items.add(item);
                         }
                     }
 

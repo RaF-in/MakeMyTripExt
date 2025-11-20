@@ -3,6 +3,8 @@ package com.mmtext.listingservice.controller;
 import com.mmtext.listingservice.dto.HotelResponseDTO;
 import com.mmtext.listingservice.mapper.HotelMapper;
 import com.mmtext.listingservice.model.Hotel;
+import com.mmtext.listingservice.model.RoomType;
+import com.mmtext.listingservice.repo.RoomTypeRepo;
 import com.mmtext.listingservice.service.HotelService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +24,9 @@ public class HotelController {
     private static final Logger log = LoggerFactory.getLogger(HotelController.class);
     @Autowired
     HotelService hotelService;
+    @Autowired
+    private RoomTypeRepo roomTypeRepo;
+
     @GetMapping
     public ResponseEntity<List<HotelResponseDTO>> getAllHotels(
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
@@ -44,6 +49,7 @@ public class HotelController {
         // 🔥 If client sent If-Modified-Since ⇒ filter by updatedAt > client value
         log.info("polling after time {}", clientLastModified);
         if (clientLastModified != null) {
+            //List<RoomType> roomTypes = roomTypeRepo.findByUpdatedAtGreaterThan(clientLastModified);
             hotels = hotelService.getHotelsUpdatedAfter(clientLastModified);
             Instant lastModified = hotels.stream()
                     .map(Hotel::getUpdatedAt)       // you must have updatedAt on Hotel entity
