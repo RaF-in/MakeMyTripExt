@@ -41,18 +41,6 @@ spring:
       # This property guarantees that even if a producer sends a message multiple times due to a network issue, the Kafka broker will only write it once. This is crucial for avoiding duplicate data in your topic.
       max.in.flight.requests.per.connection: 5
       # This property controls how many message batches a producer can send to the broker without waiting for a confirmation (acknowledgment) for the previous ones.
-#    consumer:
-#      group-id: my-consumer-group
-#      auto-offset-reset: earliest         # or latest depending on use case
-#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-#      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-#
-#      # Tuning consumer for high throughput
-#      fetch-min-size: 1                    # minimum fetch
-#      fetch-max-wait: 500                  # wait up to 500ms to send fetch request
-#      max-poll-records: 500                # maximum number of records per poll
-#      session-timeout-ms: 15000
-#      heartbeat-interval-ms: 5000
 server:
   port: 8080
 

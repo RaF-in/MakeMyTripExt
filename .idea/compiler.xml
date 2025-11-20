@@ -8,6 +8,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="supplier-polling-service" />
         <module name="listing-service" />
+        <module name="supplier-adapter-service" />
         <module name="search-consumer-service" />
         <module name="search-service" />
       </profile>
@@ -18,6 +19,7 @@
       <module name="listing-service" options="-parameters" />
       <module name="search-consumer-service" options="-parameters" />
       <module name="search-service" options="-parameters" />
+      <module name="supplier-adapter-service" options="-parameters" />
       <module name="supplier-polling-service" options="-parameters" />
     </option>
   </component>
