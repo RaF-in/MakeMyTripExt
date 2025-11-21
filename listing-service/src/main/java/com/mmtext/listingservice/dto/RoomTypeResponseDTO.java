@@ -6,6 +6,7 @@ public class RoomTypeResponseDTO {
     private RoomType roomType;
     private Long  hotelId;
     private String hotelRef;
+    private String hotelName;
 
     public RoomType getRoomType() {
         return roomType;
@@ -29,5 +30,13 @@ public class RoomTypeResponseDTO {
 
     public void setHotelRef(String hotelRef) {
         this.hotelRef = hotelRef;
+    }
+
+    public String getHotelName() {
+        return hotelName;
+    }
+
+    public void setHotelName(String hotelName) {
+        this.hotelName = hotelName;
     }
 }

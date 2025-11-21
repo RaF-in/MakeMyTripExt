@@ -14,6 +14,7 @@ public class RoomMapper {
             responseDTO.setRoomType(roomType);
             responseDTO.setHotelId(roomType.getHotel().getId());
             responseDTO.setHotelRef(roomType.getHotel().getRef());
+            responseDTO.setHotelName(roomType.getHotel().getName());
             response.add(responseDTO);
         });
         return response;

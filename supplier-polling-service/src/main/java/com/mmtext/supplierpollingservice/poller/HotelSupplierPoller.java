@@ -73,6 +73,7 @@ public class HotelSupplierPoller extends BaseReactivePoller {
                             item.setUpdatedAt(Instant.now());
                             item.setRoomType(roomTypeNode.get("roomType").asText());
                             item.setHotelId(hotelId.asText());
+                            item.setHotelName(hotelRefNode.get("hotelName").asText());
                             kafkaTemplate.send("normalize.hotel_info", item.getHotelId(), item);
                             items.add(item);
                         }

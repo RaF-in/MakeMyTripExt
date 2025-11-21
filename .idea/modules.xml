@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/MakeMyTripExt.iml" filepath="$PROJECT_DIR$/MakeMyTripExt.iml" />
+      <module fileurl="file://$PROJECT_DIR$/listing-service/listing-service.iml" filepath="$PROJECT_DIR$/listing-service/listing-service.iml" />
     </modules>
   </component>
 </project>

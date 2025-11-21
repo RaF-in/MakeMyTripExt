@@ -20,6 +20,7 @@ public class RoomInventoryItem implements InventoryItem {
 
     private String roomType;
     private String hotelId;
+    private String hotelName;
 
     public String getId() {
         return id;
@@ -115,6 +116,14 @@ public class RoomInventoryItem implements InventoryItem {
 
     public void setHotelId(String hotelId) {
         this.hotelId = hotelId;
+    }
+
+    public String getHotelName() {
+        return hotelName;
+    }
+
+    public void setHotelName(String hotelName) {
+        this.hotelName = hotelName;
     }
 
     @Override

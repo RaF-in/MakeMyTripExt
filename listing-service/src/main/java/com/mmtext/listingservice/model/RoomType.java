@@ -3,6 +3,7 @@ package com.mmtext.listingservice.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -14,7 +15,7 @@ public class RoomType {
 
     private String roomType;
     private int totalRooms;
-    private double pricePerNight;
+    private BigDecimal pricePerNight;
     @ManyToOne(fetch = FetchType.EAGER)
     @JsonIgnore
     private Hotel hotel;
@@ -49,11 +50,11 @@ public class RoomType {
         this.totalRooms = totalRooms;
     }
 
-    public double getPricePerNight() {
+    public BigDecimal getPricePerNight() {
         return pricePerNight;
     }
 
-    public void setPricePerNight(double pricePerNight) {
+    public void setPricePerNight(BigDecimal pricePerNight) {
         this.pricePerNight = pricePerNight;
     }
 

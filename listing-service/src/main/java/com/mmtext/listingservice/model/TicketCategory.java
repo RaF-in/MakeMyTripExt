@@ -2,6 +2,8 @@ package com.mmtext.listingservice.model;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
+
 @Entity
 public class TicketCategory {
     @Id
@@ -9,7 +11,7 @@ public class TicketCategory {
     private Long id;
 
     private String name;
-    private double price;
+    private BigDecimal price;
     private int count;
 
     @ManyToOne
@@ -31,11 +33,11 @@ public class TicketCategory {
         this.name = name;
     }
 
-    public double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 
