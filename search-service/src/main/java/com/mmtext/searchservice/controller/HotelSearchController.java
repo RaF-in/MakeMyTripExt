@@ -27,6 +27,24 @@ public class HotelSearchController {
     }
 
     /**
+     * 🔍 Fuzzy search hotels by name
+     * GET /api/hotel-search/by-name?name=Hilton&page=0&size=20
+     *
+     * Examples:
+     * - "Hilton" will match "Hilton Hotel", "The Hilton", "Hilton Garden Inn"
+     * - "Marriot" (typo) will match "Marriott"
+     * - "Hyat" will match "Hyatt"
+     */
+    @GetMapping("/by-name")
+    public ResponseEntity<List<HotelDocument>> searchByHotelName(
+            @RequestParam String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<HotelDocument> hotels = hotelSearchService.searchByHotelName(name, page, size);
+        return ResponseEntity.ok(hotels);
+    }
+
+    /**
      * 🔍 Search hotels by destination (city/country)
      * GET /api/hotel-search/destination?location=Dubai&checkIn=2025-12-01&checkOut=2025-12-05&guests=2
      */

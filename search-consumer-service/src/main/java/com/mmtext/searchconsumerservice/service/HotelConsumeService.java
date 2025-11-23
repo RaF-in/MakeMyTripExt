@@ -9,6 +9,7 @@ import com.mmtext.searchconsumerservice.esdocument.RoomTypeDocument;
 import com.mmtext.searchconsumerservice.repo.HotelRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import java.util.Objects;
  * Handles transformation from database entities to Elasticsearch documents.
  */
 
+@Service
 public class HotelConsumeService {
 
     private static final Logger log = LoggerFactory.getLogger(HotelConsumeService.class);

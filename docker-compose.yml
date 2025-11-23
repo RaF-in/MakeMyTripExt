@@ -153,39 +153,40 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-#  debezium:
-#    image: quay.io/debezium/connect:3.0
-#    hostname: debezium
-#    ports:
-#      - "8083:8083"
-#    environment:
-#      BOOTSTRAP_SERVERS: kafka-1:19092,kafka-2:19092,kafka-3:19092
-#      GROUP_ID: 1
-#      CONFIG_STORAGE_TOPIC: debezium_config
-#      OFFSET_STORAGE_TOPIC: debezium_offset
-#      STATUS_STORAGE_TOPIC: debezium_status
-#      CONFIG_STORAGE_REPLICATION_FACTOR: 3
-#      OFFSET_STORAGE_REPLICATION_FACTOR: 3
-#      STATUS_STORAGE_REPLICATION_FACTOR: 3
-#      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
-#      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
-#      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-#      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-#      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-#      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-#      CONNECT_REST_ADVERTISED_HOST_NAME: debezium
-#      CONNECT_REST_PORT: 8083
-#    depends_on:
-#      - kafka-1
-#      - kafka-2
-#      - kafka-3
-#      - controller-1
-#      - controller-2
-#      - controller-3
-#      - postgres
-#      - listing-service
-#    networks:
-#      - mmtext_network
+  debezium:
+    image: quay.io/debezium/connect:3.0
+    hostname: debezium
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka-1:19092,kafka-2:19092,kafka-3:19092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: debezium_config
+      OFFSET_STORAGE_TOPIC: debezium_offset
+      STATUS_STORAGE_TOPIC: debezium_status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      STATUS_STORAGE_REPLICATION_FACTOR: 3
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_REST_ADVERTISED_HOST_NAME: debezium
+      CONNECT_REST_PORT: 8083
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+      - controller-1
+      - controller-2
+      - controller-3
+      - postgres
+      - listing-service
+      - supplier-adapter-service
+    networks:
+      - mmtext_network
 
   listing-service:
     build: ./listing-service
@@ -266,9 +267,71 @@ services:
     networks:
       - mmtext_network
 
+  search-consumer-service:
+    build: ./search-consumer-service
+    container_name: search-consumer-service
+    restart: on-failure
+    environment:
+      - SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS=kafka-1:19092,kafka-2:19092,kafka-3:19092
+      - SPRING_KAFKA_CONSUMER_GROUP_ID=mmtext-consumer-group
+      #      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch-node1:9200,http://elasticsearch-node2:9200,http://elasticsearch-node3:9200
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy  # Wait until healthy
+      kafka-1:
+        condition: service_started
+      kafka-2:
+        condition: service_started
+      kafka-3:
+        condition: service_started
+      debezium:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - mmtext_network
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - network.host=0.0.0.0 # <--- THIS IS THE FIX
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
+    networks:
+      - mmtext_network
+
+  search-service:
+    build: ./search-service
+    container_name: search-service
+    ports:
+      - "4001:4001"
+    restart: on-failure
+    environment:
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy  # Wait until healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mmtext_network
+
 volumes:
   redis_data:
   postgres_data:
+  esdata1:
 
 networks:
   mmtext_network:

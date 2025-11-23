@@ -29,6 +29,7 @@ RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 -- Create triggers on hotel and category tables
+DROP TRIGGER IF EXISTS hotel_outbox_trigger ON public.hotel_polled;
 CREATE TRIGGER hotel_outbox_trigger
     AFTER INSERT OR UPDATE OR DELETE ON public.hotel_polled
     FOR EACH ROW

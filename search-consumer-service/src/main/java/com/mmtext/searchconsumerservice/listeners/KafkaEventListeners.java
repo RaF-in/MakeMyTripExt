@@ -49,6 +49,7 @@ public class KafkaEventListeners {
 
     @KafkaListener(topics = "mmtext.public.hotel_outbox_events", groupId = "hotel-consumer-group")
     public void listenHotels(ConsumerRecord<String, String> record) throws Exception {
+        log.info("Received record at search consumer service {}", record.value());
         OutboxEventProcessor<HotelDocument> processor = new OutboxEventProcessor<>(
                 objectMapper,
                 HotelDocument.class,

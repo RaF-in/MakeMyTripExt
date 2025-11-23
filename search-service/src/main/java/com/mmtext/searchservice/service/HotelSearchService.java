@@ -39,6 +39,51 @@ public class HotelSearchService {
     }
 
     /**
+     * 🔍 Fuzzy search hotels by name only
+     *
+     * Features:
+     * - Automatic fuzziness (handles 1-2 character typos)
+     * - Partial word matching
+     * - Case-insensitive search
+     * - Results sorted by relevance score (best matches first)
+     *
+     * @param name The hotel name to search (can include typos)
+     * @param page Page number (0-indexed)
+     * @param size Number of results per page
+     * @return List of matching hotels
+     */
+    @Cacheable(value = "hotels", key = "'name-' + #name + '-' + #page + '-' + #size")
+    public List<HotelDocument> searchByHotelName(String name, int page, int size) {
+        log.info("Fuzzy searching hotels by name: {}", name);
+
+        // Create fuzzy match query on hotel name field
+        Query fuzzyQuery = Query.of(q -> q
+                .match(m -> m
+                        .field("name")
+                        .query(name)
+                        .fuzziness("AUTO")  // Automatically adjusts fuzziness based on term length
+                        .prefixLength(0)     // Allow fuzziness from the first character
+                        .maxExpansions(50)   // Limit number of terms to expand for performance
+                )
+        );
+
+        NativeQuery nativeQuery = NativeQuery.builder()
+                .withQuery(fuzzyQuery)
+                .withPageable(PageRequest.of(page, size))
+                // Sort by relevance score (most relevant first), then by rating
+                .withSort(s -> s.score(sc -> sc.order(SortOrder.Desc)))
+                .withSort(s -> s.field(f -> f.field("rating").order(SortOrder.Desc)))
+                .build();
+
+        List<HotelDocument> results = elasticsearchOperations.search(nativeQuery, HotelDocument.class)
+                .map(SearchHit::getContent)
+                .toList();
+
+        log.info("Found {} hotels matching name: {}", results.size(), name);
+        return results;
+    }
+
+    /**
      * 🔍 Search hotels by destination (city or country)
      */
     @Cacheable(value = "hotels", key = "'destination-' + #location + '-' + #checkIn + '-' + #checkOut + '-' + #guests + '-' + #page")

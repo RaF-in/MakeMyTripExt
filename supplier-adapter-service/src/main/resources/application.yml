@@ -1,6 +1,13 @@
 spring:
   application:
     name: supplier-adapter-service
+#  flyway:
+#    enabled: true
+#    baseline-on-migrate: true
+#    locations: classpath:db/migration
+#    table: supplier_adapter_service_flyway_schema_history
+#    baseline-version: 0
+
   kafka:
     consumer:
       group-id: mmtext-adapter-consumer-group
@@ -20,7 +27,7 @@ spring:
       type: batch
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
 
 
 

@@ -3,36 +3,36 @@ POST http://localhost:4000/api/admin/hotel
 Content-Type: application/json
 
 {
-  "name": "Hotel the Cox today",
-  "description": "Near Kolatoli",
-  "rating": 2.5,
+  "name": "Magnus Classen",
+  "description": "Near Sugondha",
+  "rating": 3,
   "roomTypes": [{
     "roomType": "single",
     "totalRooms": 10,
     "pricePerNight": 100,
-    "updatedAt": "2027-02-20T12:00:05Z",
+    "updatedAt": "2020-02-20T12:00:05Z",
     "ref": "room12"
   }, {
     "roomType": "double",
     "totalRooms": 10,
     "pricePerNight": 200,
-    "updatedAt": "2023-02-20T12:00:05Z",
+    "updatedAt": "2028-02-20T12:00:05Z",
     "ref": "room18"
   }, {
     "roomType": "deluxe",
     "totalRooms": 10,
     "pricePerNight": 100,
-    "updatedAt": "2027-02-20T12:00:05Z",
+    "updatedAt": "2021-02-20T12:00:05Z",
     "ref": "room13"
   }, {
     "roomType": "honeymoon",
     "totalRooms": 10,
     "pricePerNight": 100,
-    "updatedAt": "2027-02-20T12:00:05Z",
+    "updatedAt": "2021-02-20T12:00:05Z",
     "ref": "room163"
   }],
-  "updatedAt": "2026-02-20T12:00:05Z",
-  "ref": "htct1",
+  "updatedAt": "2028-02-20T12:00:05Z",
+  "ref": "clas",
   "supplierRef": "supp1"
 }
 

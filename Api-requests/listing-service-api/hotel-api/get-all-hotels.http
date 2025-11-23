@@ -1,4 +1,4 @@
 ### GET request to example server
-#GET http://localhost:4000/api/admin/hotel
-DELETE http://localhost:4000/api/admin/hotel/8
+GET http://localhost:4000/api/admin/hotel
+#DELETE http://localhost:4000/api/admin/hotel/8
 ###
