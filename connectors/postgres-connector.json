@@ -1,5 +1,5 @@
 {
-  "name": "postgres-connector",
+  "name": "postgres-hotel-connector",
   "config": {
     "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
     "database.hostname": "postgres",
@@ -8,7 +8,7 @@
     "database.password": "admin",
     "database.dbname": "db",
     "database.server.name": "mmtext",
-    "table.include.list": "public.movie_outbox_events",
+    "table.include.list": "public.hotel_outbox_events",
     "topic.prefix": "mmtext",
     "plugin.name": "pgoutput",
     "publication.name": "dbz_publication",
@@ -25,7 +25,7 @@
     "value.converter.schemas.enable": "false",
     "errors.tolerance": "all",
     "errors.log.enable": "true",
-    "errors.deadletterqueue.topic.name": "mmtext.public.movie_outbox_events.dlq",
+    "errors.deadletterqueue.topic.name": "mmtext.public.hotel_outbox_events.dlq",
     "errors.deadletterqueue.topic.replication.factor": "3",
     "errors.deadletterqueue.context.headers.enable": "true"
 

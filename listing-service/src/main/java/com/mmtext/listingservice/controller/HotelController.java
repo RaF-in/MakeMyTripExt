@@ -78,4 +78,8 @@ public class HotelController {
     public ResponseEntity<Boolean> deleteHotel(@PathVariable Long id) {
         return ResponseEntity.ok().body(hotelService.delete(id));
     }
+    @DeleteMapping
+    public ResponseEntity<Boolean> deleteAllMovies() {
+        return ResponseEntity.ok().body(hotelService.deleteAll());
+    }
 }

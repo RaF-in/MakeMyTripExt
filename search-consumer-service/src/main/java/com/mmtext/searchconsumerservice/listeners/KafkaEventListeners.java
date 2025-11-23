@@ -2,79 +2,68 @@ package com.mmtext.searchconsumerservice.listeners;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mmtext.searchconsumerservice.esdocument.HotelDocument;
 import com.mmtext.searchconsumerservice.esdocument.MovieDocument;
+import com.mmtext.searchconsumerservice.interfaces.OutboxEventHandler;
+import com.mmtext.searchconsumerservice.service.HotelConsumeService;
 import com.mmtext.searchconsumerservice.service.MovieConsumeService;
+import com.mmtext.searchconsumerservice.service.OutboxEventProcessor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 @Service
 public class KafkaEventListeners {
     private static final Logger log = LoggerFactory.getLogger(KafkaEventListeners.class);
-
     private final ObjectMapper objectMapper;
+    private final MovieConsumeService movieConsumeService;
+    private final HotelConsumeService hotelConsumeService;
 
-    @Autowired
-    MovieConsumeService movieConsumeService;
-
-    public KafkaEventListeners(ObjectMapper objectMapper) {
+    public KafkaEventListeners(ObjectMapper objectMapper, MovieConsumeService movieConsumeService, HotelConsumeService hotelConsumeService) {
         this.objectMapper = objectMapper;
+        this.movieConsumeService = movieConsumeService;
+        this.hotelConsumeService = hotelConsumeService;
     }
 
     @KafkaListener(topics = "mmtext.public.movie_outbox_events", groupId = "movie-consumer-group")
-    public void listen(ConsumerRecord<String, String> record) throws Exception {
-        String topic = record.topic();
-        String message = record.value();
-
-        log.info("Received message from topic {}", topic);
-        log.debug("Message content: {}", message);
-
-        try {
-            JsonNode eventNode = objectMapper.readTree(message);
-            log.warn("Received message {}", eventNode.toString());
-            if (eventNode.has("after")) {
-                JsonNode afterNode = eventNode.get("after");
-                if (afterNode != null && afterNode.has("type") && afterNode.has("payload")) {
-                    String eventType = afterNode.get("type").asText();
-                    String payloadString = afterNode.get("payload").asText();
-                    JsonNode payloadNode = afterNode.get("payload");
-                    if (payloadNode == null) {
-                        log.warn("Received message without expected 'payload' field, skipping.");
-                        return;
-                    }
-                    String operation = eventNode.get("op").asText();
-                    log.info("Processing database operation: {}", operation);
-                    JsonNode movieDataJson = objectMapper.readTree(payloadString);
-
-                    log.info("Processing database trigger event: {}", eventType);
-                    log.info("Movie data: {}", movieDataJson.toString());
-                    // Parse the JSON inside payload
-                    switch (operation) {
-                        case "c": // Create
-                        case "u": // Update
-                            movieConsumeService.saveOrUpdateMovie(objectMapper.treeToValue(movieDataJson, MovieDocument.class));
-                            break;
-                        case "d": // Delete
-                            // For delete operations, we use the 'before' state to get the ID
-                            JsonNode beforeNode = eventNode.get("before");
-                            if (beforeNode != null) {
-                                movieConsumeService.deleteMovie(beforeNode);
-                            }
-                            break;
-                        default:
-                            log.info("Unknown or unsupported operation type: {}", operation);
-                            break;
+    public void listenMovies(ConsumerRecord<String, String> record) throws Exception {
+        OutboxEventProcessor<MovieDocument> processor = new OutboxEventProcessor<>(
+                objectMapper,
+                MovieDocument.class,
+                new OutboxEventHandler<MovieDocument>() {
+                    @Override
+                    public void saveOrUpdate(MovieDocument document) {
+                        movieConsumeService.saveOrUpdateMovie(document);
                     }
 
+                    @Override
+                    public void delete(JsonNode beforeNode) {
+                        movieConsumeService.deleteMovie(beforeNode);
+                    }
                 }
+        );
+        processor.process(record);
+    }
 
-            }
-        } catch (Exception e) {
-            log.error("Error processing message from topic {}: {}", record.topic(), e.getMessage(), e);
-            throw e; // Let Kafka retry if needed
-        }
+    @KafkaListener(topics = "mmtext.public.hotel_outbox_events", groupId = "hotel-consumer-group")
+    public void listenHotels(ConsumerRecord<String, String> record) throws Exception {
+        OutboxEventProcessor<HotelDocument> processor = new OutboxEventProcessor<>(
+                objectMapper,
+                HotelDocument.class,
+                new OutboxEventHandler<HotelDocument>() {
+                    @Override
+                    public void saveOrUpdate(HotelDocument document) {
+                        hotelConsumeService.saveOrUpdateHotel(document);
+                    }
+
+                    @Override
+                    public void delete(JsonNode beforeNode) {
+                        hotelConsumeService.deleteHotel(beforeNode);
+                    }
+                }
+        );
+        processor.process(record);
     }
 }

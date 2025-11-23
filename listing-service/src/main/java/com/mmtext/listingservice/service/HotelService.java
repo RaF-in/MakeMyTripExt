@@ -37,4 +37,9 @@ public class HotelService {
     public List<Hotel> getHotelsUpdatedAfter(Instant lastModified) {
         return hotelRepo.findByUpdatedAtGreaterThan(lastModified);
     }
+
+    public Boolean deleteAll() {
+        hotelRepo.deleteAll();
+        return true;
+    }
 }

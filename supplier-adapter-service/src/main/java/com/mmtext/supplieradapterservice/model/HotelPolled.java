@@ -22,6 +22,8 @@ public class HotelPolled {
     private Instant createdAt;
     private Instant updatedAt;
     private String ref;
+    private String supplierRef;
+
 
     public Long getId() {
         return id;
@@ -101,5 +103,13 @@ public class HotelPolled {
 
     public void setRef(String ref) {
         this.ref = ref;
+    }
+
+    public String getSupplierRef() {
+        return supplierRef;
+    }
+
+    public void setSupplierRef(String supplierRef) {
+        this.supplierRef = supplierRef;
     }
 }

@@ -20,6 +20,9 @@ public class RoomInventoryItem implements InventoryItem {
     private String roomType;
     private String hotelId;
     private String hotelName;
+    private double rating;
+    private String description;
+    private String hotelRef;
 
     public String getId() {
         return id;
@@ -140,6 +143,14 @@ public class RoomInventoryItem implements InventoryItem {
         return "";
     }
 
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     @Override
     public String destination() {
         return "";
@@ -173,5 +184,21 @@ public class RoomInventoryItem implements InventoryItem {
     @Override
     public Instant arrivalTime() {
         return null;
+    }
+
+    public double getRating() {
+        return rating;
+    }
+
+    public void setRating(double rating) {
+        this.rating = rating;
+    }
+
+    public String getHotelRef() {
+        return hotelRef;
+    }
+
+    public void setHotelRef(String hotelRef) {
+        this.hotelRef = hotelRef;
     }
 }

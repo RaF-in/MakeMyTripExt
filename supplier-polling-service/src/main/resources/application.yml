@@ -37,6 +37,7 @@ spring:
         linger.ms: 10
 
     properties:
+      spring.json.add.type.headers: false
       enable.idempotence: true
       # This property guarantees that even if a producer sends a message multiple times due to a network issue, the Kafka broker will only write it once. This is crucial for avoiding duplicate data in your topic.
       max.in.flight.requests.per.connection: 5

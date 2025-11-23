@@ -65,6 +65,7 @@ public class RedisCacheConfig {
                 .withCacheConfiguration("theaters", config.entryTtl(Duration.ofMinutes(20)))
                 .withCacheConfiguration("shows", config.entryTtl(Duration.ofMinutes(10)))
                 .withCacheConfiguration("trending", config.entryTtl(Duration.ofMinutes(5)))
+                .withCacheConfiguration("hotels", config.entryTtl(Duration.ofMinutes(5)))
                 .build();
     }
 }

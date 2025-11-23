@@ -28,4 +28,8 @@ public class MovieService {
     }
 
 
+    public Boolean deleteAll() {
+        movieRepo.deleteAll();
+        return true;
+    }
 }

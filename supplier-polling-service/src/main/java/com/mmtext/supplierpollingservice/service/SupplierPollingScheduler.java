@@ -2,6 +2,7 @@ package com.mmtext.supplierpollingservice.service;
 
 
 import com.mmtext.supplierpollingservice.config.PollingConfig;
+import com.mmtext.supplierpollingservice.dto.RoomInventoryItem;
 import com.mmtext.supplierpollingservice.enums.SupplierType;
 import com.mmtext.supplierpollingservice.poller.AirlineSupplierPoller;
 import com.mmtext.supplierpollingservice.poller.BusSupplierPoller;
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -31,20 +33,22 @@ public class SupplierPollingScheduler {
     private final List<SupplierPoller> allPollers = new ArrayList<>();
 
     private final WebClient.Builder webClientBuilder;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     private final ConcurrentHashMap<String, ScheduledExecutorService> schedulers =
             new ConcurrentHashMap<>();
 
     public SupplierPollingScheduler(
             SupplierPollingOrchestrator orchestrator,
-            WebClient.Builder webClientBuilder
+            WebClient.Builder webClientBuilder, KafkaTemplate<String, Object>  kafkaTemplate
     ) {
         this.orchestrator = orchestrator;
         this.webClientBuilder = webClientBuilder;
+        this.kafkaTemplate = kafkaTemplate;
 
         // Hard-code pollers directly here
         //allPollers.add(new AirlineSupplierPoller(this.webClientBuilder, airlineSupplierConfig()));
-        allPollers.add(new HotelSupplierPoller(this.webClientBuilder, hotelSupplierConfig()));
+        allPollers.add(new HotelSupplierPoller(this.webClientBuilder, hotelSupplierConfig(), this.kafkaTemplate));
         //allPollers.add(new BusSupplierPoller(this.webClientBuilder, busSupplierConfig()));
     }
 

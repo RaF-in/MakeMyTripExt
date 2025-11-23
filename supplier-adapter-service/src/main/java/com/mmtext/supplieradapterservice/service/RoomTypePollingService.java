@@ -28,7 +28,7 @@ public class RoomTypePollingService {
 
         // Extract refs upfront
         Set<String> hotelRefs = supplierRooms.stream()
-                .map(RoomInventoryItem::getSupplierRef)
+                .map(RoomInventoryItem::getHotelRef)
                 .collect(Collectors.toSet());
 
         // Load all existing hotels at once
@@ -51,10 +51,11 @@ public class RoomTypePollingService {
         for (RoomInventoryItem dto : supplierRooms) {
 
             // 1. Find or create hotel
-            HotelPolled hotel = existingHotels.get(dto.getSupplierRef());
+            HotelPolled hotel = existingHotels.get(dto.getHotelRef());
             if (hotel == null) {
                 hotel = createNewHotel(dto);
-                existingHotels.put(dto.getSupplierRef(), hotel);
+                existingHotels.put(dto.getHotelRef(), hotel);
+                hotelsToSave.add(hotel);
             }
 
             // 2. Find existing roomType
@@ -64,9 +65,7 @@ public class RoomTypePollingService {
                 room = mapNewRoom(dto, hotel);
                 existingRooms.put(dto.getRoomType(), room);
                 roomsToSave.add(room);
-
                 hotel.setUpdatedAt(Instant.now());
-                hotelsToSave.add(hotel);
                 continue;
             }
 
@@ -78,7 +77,6 @@ public class RoomTypePollingService {
                 roomsToSave.add(room);
 
                 hotel.setUpdatedAt(Instant.now());
-                hotelsToSave.add(hotel);
             }
         }
 
@@ -90,10 +88,12 @@ public class RoomTypePollingService {
 
     private HotelPolled createNewHotel(RoomInventoryItem dto) {
         HotelPolled hotel = new HotelPolled();
-        hotel.setRef(dto.getSupplierRef());
+        hotel.setRef(dto.getHotelRef());
         hotel.setName(dto.getHotelName());
         hotel.setCreatedAt(Instant.now());
-        hotel.setUpdatedAt(Instant.now());
+        hotel.setUpdatedAt(dto.getUpdatedAt());
+        hotel.setSupplierRef(dto.getSupplierRef());
+        hotel.setRating(dto.getRating());
         return hotelRepo.save(hotel);
     }
 
@@ -116,4 +116,3 @@ public class RoomTypePollingService {
         existing.setUpdatedAt(Instant.now());
     }
 }
-

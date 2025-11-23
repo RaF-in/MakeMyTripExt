@@ -3,10 +3,10 @@ spring:
     name: supplier-adapter-service
   kafka:
     consumer:
-      group-id: my-consumer-group
+      group-id: mmtext-adapter-consumer-group
       auto-offset-reset: earliest         # or latest depending on use case
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.JsonDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
       # Tuning consumer for high throughput
       fetch-min-size: 1                    # minimum fetch
@@ -18,6 +18,9 @@ spring:
     listener:
       concurrency: 5
       type: batch
+  jpa:
+    hibernate:
+      ddl-auto: update
 
 
 
