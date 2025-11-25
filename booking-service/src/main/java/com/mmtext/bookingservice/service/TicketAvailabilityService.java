@@ -1,8 +1,8 @@
 package com.mmtext.bookingservice.service;
 
 import com.mmtext.bookingservice.dto.AvailableTicketDTO;
+import com.mmtext.bookingservice.enums.Enums;
 import com.mmtext.bookingservice.model.Ticket;
-import com.mmtext.bookingservice.model.TicketStatus;
 import com.mmtext.bookingservice.repo.TicketRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +36,7 @@ public class TicketAvailabilityService {
         // Step 1: Get all tickets with status AVAILABLE from DB
         List<Ticket> availableInDb = ticketRepository.findByEventIdAndStatus(
                 eventId,
-                TicketStatus.AVAILABLE
+                Enums.TicketStatus.AVAILABLE
         );
 
         // Step 2: Get locked ticket IDs from Redis
@@ -71,7 +71,7 @@ public class TicketAvailabilityService {
         Ticket ticket = ticketRepository.findByTicketId(ticketId)
                 .orElse(null);
 
-        if (ticket == null || ticket.getStatus() == TicketStatus.BOOKED) {
+        if (ticket == null || ticket.getStatus() == Enums.TicketStatus.BOOKED) {
             return false;
         }
 

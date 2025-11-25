@@ -4,7 +4,6 @@ import com.mmtext.bookingservice.dto.*;
 import com.mmtext.bookingservice.enums.Enums;
 import com.mmtext.bookingservice.model.Booking;
 import com.mmtext.bookingservice.model.Ticket;
-import com.mmtext.bookingservice.model.TicketStatus;
 import com.mmtext.bookingservice.repo.BookingRepository;
 import com.mmtext.bookingservice.repo.TicketRepository;
 import org.slf4j.Logger;
@@ -41,6 +40,9 @@ public class BookingService {
 
     @Autowired
     private TicketAvailabilityService ticketAvailabilityService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     /**
      * Main booking method - routes to appropriate handler
@@ -137,7 +139,6 @@ public class BookingService {
 
         // Update payment URL in Redis
         bookingData.setPaymentUrl(paymentResponse.getPaymentUrl());
-        redisService.storeBookingData(bookingData, ttlSeconds);
 
         logger.info("Low concurrency booking created in Redis: {}", bookingReference);
 
@@ -202,7 +203,6 @@ public class BookingService {
 
         // Update payment URL
         bookingData.setPaymentUrl(paymentResponse.getPaymentUrl());
-        redisService.storeBookingData(bookingData, ttlSeconds);
 
         logger.info("Medium concurrency booking created in Redis: {}", bookingReference);
 
@@ -278,164 +278,6 @@ public class BookingService {
     }
 
     /**
-     * Asynchronously confirm booking in DB after payment success
-     */
-    @Async
-    @Transactional
-    public void confirmBookingAsync(PaymentWebhookRequest webhookRequest) {
-        try {
-            String bookingReference = webhookRequest.getBookingReference();
-
-            // Get booking data from Redis
-            BookingData bookingData = redisService.getBookingData(bookingReference);
-
-            if (bookingData == null) {
-                logger.error("Booking data not found in Redis: {}", bookingReference);
-                return;
-            }
-
-            // Update ticket status in DB
-            Ticket ticket = ticketRepository.findByTicketId(bookingData.getTicketId())
-                    .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
-
-            ticket.setStatus(TicketStatus.BOOKED);
-            ticket.setBookedByUserId(bookingData.getUserId());
-            ticket.setBookingReference(bookingReference);
-            ticket.setBookedAt(Instant.now());
-            ticketRepository.save(ticket);
-
-            // Create confirmed booking record in DB
-            Booking booking = new Booking(
-                    bookingReference,
-                    bookingData.getUserId(),
-                    bookingData.getTicketId(),
-                    bookingData.getConcurrencyType(),
-                    bookingData.getAmount()
-            );
-            booking.setPaymentId(webhookRequest.getPaymentId());
-            booking.setPaidAt(webhookRequest.getPaidAt());
-            bookingRepository.save(booking);
-
-            // Cleanup Redis
-            redisService.deleteBookingData(bookingReference);
-            redisService.unlockTicket(bookingData.getTicketId());
-            redisService.removeFromProcessing(bookingReference);
-
-            // Confirm with supplier if LOW concurrency
-            if (bookingData.getConcurrencyType() == Enums.ConcurrencyType.LOW &&
-                    bookingData.getSupplierReservationId() != null) {
-                supplierService.confirmBooking(
-                        bookingData.getSupplierReservationId(),
-                        webhookRequest.getPaymentId()
-                );
-            }
-
-            logger.info("Booking confirmed asynchronously in DB: {}", bookingReference);
-
-        } catch (Exception e) {
-            logger.error("Failed to confirm booking asynchronously", e);
-            // In production, add to dead letter queue for manual intervention
-        }
-    }
-
-    /**
-     * Cleanup failed booking
-     */
-    private void cleanupFailedBooking(String bookingReference) {
-        BookingData bookingData = redisService.getBookingData(bookingReference);
-
-        if (bookingData != null) {
-            // Unlock ticket
-            redisService.unlockTicket(bookingData.getTicketId());
-
-            // Cancel supplier reservation if LOW concurrency
-            if (bookingData.getConcurrencyType() == Enums.ConcurrencyType.LOW &&
-                    bookingData.getSupplierReservationId() != null) {
-                supplierService.cancelReservation(bookingData.getSupplierReservationId());
-            }
-
-            // Delete from Redis
-            redisService.deleteBookingData(bookingReference);
-        }
-
-        redisService.removeFromProcessing(bookingReference);
-
-        logger.info("Cleaned up failed booking: {}", bookingReference);
-    }
-
-    /**
-     * Cancel booking
-     */
-    @Transactional
-    public CancelBookingResponse cancelBooking(CancelBookingRequest request) {
-        logger.info("Cancelling booking: {}", request.getBookingReference());
-
-        // Check Redis first
-        BookingData bookingData = redisService.getBookingData(request.getBookingReference());
-
-        if (bookingData != null) {
-            // Booking in payment pending state, just cleanup Redis
-            redisService.unlockTicket(bookingData.getTicketId());
-            redisService.deleteBookingData(request.getBookingReference());
-
-            if (bookingData.getConcurrencyType() == Enums.ConcurrencyType.LOW &&
-                    bookingData.getSupplierReservationId() != null) {
-                supplierService.cancelReservation(bookingData.getSupplierReservationId());
-            }
-
-            return new CancelBookingResponse(
-                    request.getBookingReference(),
-                    Enums.BookingStatus.CANCELLED,
-                    "Booking cancelled successfully"
-            );
-        }
-
-        // Check DB for confirmed booking
-        Booking booking = bookingRepository.findByBookingReferenceAndUserId(
-                request.getBookingReference(),
-                request.getUserId()
-        ).orElseThrow(() -> new IllegalArgumentException("Booking not found"));
-
-        if (booking.getStatus() == Enums.BookingStatus.CONFIRMED) {
-            // Process refund
-            String refundId = paymentService.processRefund(
-                    booking.getPaymentId(),
-                    booking.getAmount()
-            );
-
-            // Update ticket status
-            Ticket ticket = ticketRepository.findByTicketId(booking.getTicketId())
-                    .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
-
-            ticket.setStatus(TicketStatus.AVAILABLE);
-            ticket.setBookedByUserId(null);
-            ticket.setBookingReference(null);
-            ticket.setBookedAt(null);
-            ticketRepository.save(ticket);
-
-            // Update booking status
-            booking.setStatus(Enums.BookingStatus.CANCELLED);
-            booking.setCancelledAt(Instant.now());
-            bookingRepository.save(booking);
-
-            CancelBookingResponse response = new CancelBookingResponse(
-                    booking.getBookingReference(),
-                    Enums.BookingStatus.CANCELLED,
-                    "Booking cancelled and refund initiated"
-            );
-            response.setRefundId(refundId);
-
-            return response;
-        }
-
-        return new CancelBookingResponse(
-                request.getBookingReference(),
-                Enums.BookingStatus.CANCELLED,
-                "Booking already cancelled"
-        );
-    }
-
-    /**
      * Get booking details
      */
     public BookingDetailsResponse getBookingDetails(String bookingReference) {
@@ -477,5 +319,213 @@ public class BookingService {
     private String generateBookingReference() {
         return "BK-" + System.currentTimeMillis() + "-" +
                 UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+
+    @Async
+    @Transactional
+    public void confirmBookingAsync(PaymentWebhookRequest webhookRequest) {
+        try {
+            String bookingReference = webhookRequest.getBookingReference();
+
+            // Get booking data from Redis
+            BookingData bookingData = redisService.getBookingData(bookingReference);
+
+            if (bookingData == null) {
+                logger.error("Booking data not found in Redis: {}", bookingReference);
+                return;
+            }
+
+            // Get ticket details for notification
+            Ticket ticket = ticketRepository.findByTicketId(bookingData.getTicketId())
+                    .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+
+            // Update ticket status in DB
+            ticket.setStatus(Enums.TicketStatus.BOOKED);
+            ticket.setBookedByUserId(bookingData.getUserId());
+            ticket.setBookingReference(bookingReference);
+            ticket.setBookedAt(Instant.now());
+            ticketRepository.save(ticket);
+
+            // Create confirmed booking record in DB
+            Booking booking = new Booking(
+                    bookingReference,
+                    bookingData.getUserId(),
+                    bookingData.getTicketId(),
+                    bookingData.getConcurrencyType(),
+                    Enums.BookingStatus.CONFIRMED,
+                    bookingData.getAmount()
+            );
+            booking.setPaymentId(webhookRequest.getPaymentId());
+            booking.setPaidAt(webhookRequest.getPaidAt());
+            bookingRepository.save(booking);
+
+            // Cleanup Redis
+            redisService.deleteBookingData(bookingReference);
+            redisService.unlockTicket(bookingData.getTicketId());
+            redisService.removeFromProcessing(bookingReference);
+
+            // Confirm with supplier if LOW concurrency
+            if (bookingData.getConcurrencyType() == Enums.ConcurrencyType.LOW &&
+                    bookingData.getSupplierReservationId() != null) {
+                supplierService.confirmBooking(
+                        bookingData.getSupplierReservationId(),
+                        webhookRequest.getPaymentId()
+                );
+            }
+
+            logger.info("Booking confirmed asynchronously in DB: {}", bookingReference);
+
+            // Send confirmation notification
+            NotificationRequest notificationRequest = new NotificationRequest(
+                    bookingData.getUserId(),
+                    bookingReference,
+                    bookingData.getTicketId(),
+                    ticket.getEventName(),
+                    bookingData.getAmount()
+            );
+            notificationRequest.setPaymentId(webhookRequest.getPaymentId());
+
+            notificationService.sendBookingConfirmation(notificationRequest);
+
+        } catch (Exception e) {
+            logger.error("Failed to confirm booking asynchronously", e);
+        }
+    }
+
+// Update the cleanupFailedBooking method to include notification:
+
+    private void cleanupFailedBooking(String bookingReference) {
+        BookingData bookingData = redisService.getBookingData(bookingReference);
+
+        if (bookingData != null) {
+            // Unlock ticket
+            redisService.unlockTicket(bookingData.getTicketId());
+
+            // Cancel supplier reservation if LOW concurrency
+            if (bookingData.getConcurrencyType() == Enums.ConcurrencyType.LOW &&
+                    bookingData.getSupplierReservationId() != null) {
+                supplierService.cancelReservation(bookingData.getSupplierReservationId());
+            }
+
+            // Get ticket for notification
+            Ticket ticket = ticketRepository.findByTicketId(bookingData.getTicketId()).orElse(null);
+
+            // Send failure notification
+            NotificationRequest notificationRequest = new NotificationRequest(
+                    bookingData.getUserId(),
+                    bookingReference,
+                    bookingData.getTicketId(),
+                    ticket != null ? ticket.getEventName() : "Unknown Event",
+                    bookingData.getAmount()
+            );
+            notificationRequest.setFailureReason("Payment failed or expired");
+
+            notificationService.sendBookingFailure(notificationRequest);
+
+            // Delete from Redis
+            redisService.deleteBookingData(bookingReference);
+        }
+
+        redisService.removeFromProcessing(bookingReference);
+
+        logger.info("Cleaned up failed booking: {}", bookingReference);
+    }
+
+// Update the cancelBooking method to include notification:
+
+    @Transactional
+    public CancelBookingResponse cancelBooking(CancelBookingRequest request) {
+        logger.info("Cancelling booking: {}", request.getBookingReference());
+
+        // Check Redis first
+        BookingData bookingData = redisService.getBookingData(request.getBookingReference());
+
+        if (bookingData != null) {
+            // Booking in payment pending state, just cleanup Redis
+            redisService.unlockTicket(bookingData.getTicketId());
+            redisService.deleteBookingData(request.getBookingReference());
+
+            if (bookingData.getConcurrencyType() == Enums.ConcurrencyType.LOW &&
+                    bookingData.getSupplierReservationId() != null) {
+                supplierService.cancelReservation(bookingData.getSupplierReservationId());
+            }
+
+            // Get ticket for notification
+            Ticket ticket = ticketRepository.findByTicketId(bookingData.getTicketId()).orElse(null);
+
+            // Send cancellation notification
+            NotificationRequest notificationRequest = new NotificationRequest(
+                    bookingData.getUserId(),
+                    request.getBookingReference(),
+                    bookingData.getTicketId(),
+                    ticket != null ? ticket.getEventName() : "Unknown Event",
+                    bookingData.getAmount()
+            );
+
+            notificationService.sendCancellationNotification(notificationRequest);
+
+            return new CancelBookingResponse(
+                    request.getBookingReference(),
+                    Enums.BookingStatus.CANCELLED,
+                    "Booking cancelled successfully"
+            );
+        }
+
+        // Check DB for confirmed booking
+        Booking booking = bookingRepository.findByBookingReferenceAndUserId(
+                request.getBookingReference(),
+                request.getUserId()
+        ).orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        if (booking.getStatus() == Enums.BookingStatus.CONFIRMED) {
+            // Process refund
+            String refundId = paymentService.processRefund(
+                    booking.getPaymentId(),
+                    booking.getAmount()
+            );
+
+            // Update ticket status
+            Ticket ticket = ticketRepository.findByTicketId(booking.getTicketId())
+                    .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+
+            ticket.setStatus(Enums.TicketStatus.AVAILABLE);
+            ticket.setBookedByUserId(null);
+            ticket.setBookingReference(null);
+            ticket.setBookedAt(null);
+            ticketRepository.save(ticket);
+
+            // Update booking status
+            booking.setStatus(Enums.BookingStatus.CANCELLED);
+            booking.setCancelledAt(Instant.now());
+            bookingRepository.save(booking);
+
+            // Send cancellation notification
+            NotificationRequest notificationRequest = new NotificationRequest(
+                    booking.getUserId(),
+                    request.getBookingReference(),
+                    booking.getTicketId(),
+                    ticket.getEventName(),
+                    booking.getAmount()
+            );
+            notificationRequest.setRefundId(refundId);
+
+            notificationService.sendCancellationNotification(notificationRequest);
+
+            CancelBookingResponse response = new CancelBookingResponse(
+                    booking.getBookingReference(),
+                    Enums.BookingStatus.CANCELLED,
+                    "Booking cancelled and refund initiated"
+            );
+            response.setRefundId(refundId);
+
+            return response;
+        }
+
+        return new CancelBookingResponse(
+                request.getBookingReference(),
+                Enums.BookingStatus.CANCELLED,
+                "Booking already cancelled"
+        );
     }
 }

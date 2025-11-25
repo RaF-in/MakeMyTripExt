@@ -50,6 +50,17 @@ public class Booking {
 
     private Instant updatedAt;
 
+    private Enums.BookingStatus bookingStatus;
+
+    public Booking(String bookingReference, String userId, String ticketId, Enums.ConcurrencyType concurrencyType, Enums.BookingStatus bookingStatus, Double amount) {
+        this.bookingReference = bookingReference;
+        this.userId = userId;
+        this.ticketId = ticketId;
+        this.concurrencyType = concurrencyType;
+        this.status = status;
+        this.amount = amount;
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();
@@ -70,7 +81,6 @@ public class Booking {
         this.userId = userId;
         this.ticketId = ticketId;
         this.concurrencyType = concurrencyType;
-        this.status = status;
         this.amount = amount;
     }
 
@@ -177,6 +187,14 @@ public class Booking {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Enums.BookingStatus getBookingStatus() {
+        return bookingStatus;
+    }
+
+    public void setBookingStatus(Enums.BookingStatus bookingStatus) {
+        this.bookingStatus = bookingStatus;
     }
 }
 

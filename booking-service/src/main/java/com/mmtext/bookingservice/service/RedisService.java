@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mmtext.bookingservice.dto.BookingData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -17,11 +19,12 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class RedisService {
 
+    private static final Logger log = LoggerFactory.getLogger(RedisService.class);
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
     private final ObjectMapper objectMapper;
-
+    private static final String ACTIVE_QUEUES_SET = "active_queues";
     public RedisService() {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
@@ -135,15 +138,6 @@ public class RedisService {
     }
 
     /**
-     * Add to queue (sorted set with timestamp as score)
-     */
-    public void addToQueue(String ticketId, String bookingReference) {
-        String key = QUEUE_PREFIX + ticketId;
-        double score = System.currentTimeMillis();
-        redisTemplate.opsForZSet().add(key, bookingReference, score);
-    }
-
-    /**
      * Get queue position
      */
     public Long getQueuePosition(String ticketId, String bookingReference) {
@@ -157,33 +151,6 @@ public class RedisService {
     public Long getQueueSize(String ticketId) {
         String key = QUEUE_PREFIX + ticketId;
         return redisTemplate.opsForZSet().size(key);
-    }
-
-    /**
-     * Pop batch from queue using Lua script for atomicity
-     */
-    public Set<Object> popBatchFromQueue(String ticketId, int batchSize) {
-        String key = QUEUE_PREFIX + ticketId;
-
-        // Lua script to atomically get and remove items
-        String luaScript =
-                "local items = redis.call('ZRANGE', KEYS[1], 0, ARGV[1] - 1) " +
-                        "if #items > 0 then " +
-                        "    redis.call('ZREMRANGEBYRANK', KEYS[1], 0, ARGV[1] - 1) " +
-                        "end " +
-                        "return items";
-
-        DefaultRedisScript<List> script = new DefaultRedisScript<>();
-        script.setScriptText(luaScript);
-        script.setResultType(List.class);
-
-        List<Object> result = redisTemplate.execute(
-                script,
-                Collections.singletonList(key),
-                batchSize
-        );
-
-        return result != null ? Set.copyOf(result) : Set.of();
     }
 
     /**
@@ -208,5 +175,102 @@ public class RedisService {
     public void removeFromProcessing(String bookingReference) {
         String key = PROCESSING_PREFIX + bookingReference;
         redisTemplate.delete(key);
+    }
+
+
+    /**
+     * Add ticket to active queues set
+     * Called when first booking is added to queue
+     */
+    public void registerActiveQueue(String ticketId) {
+        redisTemplate.opsForSet().add(ACTIVE_QUEUES_SET, ticketId);
+        log.debug("Registered active queue for ticket: {}", ticketId);
+    }
+
+    /**
+     * Remove ticket from active queues set
+     * Called when queue becomes empty
+     */
+    public void deregisterActiveQueue(String ticketId) {
+        redisTemplate.opsForSet().remove(ACTIVE_QUEUES_SET, ticketId);
+        log.debug("Deregistered active queue for ticket: {}", ticketId);
+    }
+
+    /**
+     * Get all active queue ticket IDs
+     */
+    public Set<String> getActiveQueueKeys() {
+        Set<Object> rawKeys = redisTemplate.opsForSet().members(ACTIVE_QUEUES_SET);
+
+        if (rawKeys == null || rawKeys.isEmpty()) {
+            return Set.of();
+        }
+
+        return rawKeys.stream()
+                .map(Object::toString)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    /**
+     * Check if queue is active
+     */
+    public boolean isQueueActive(String ticketId) {
+        return Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(ACTIVE_QUEUES_SET, ticketId));
+    }
+
+    /**
+     * Update the addToQueue method to register active queue
+     */
+    public void addToQueue(String ticketId, String bookingReference) {
+        String key = QUEUE_PREFIX + ticketId;
+        double score = System.currentTimeMillis();
+        redisTemplate.opsForZSet().add(key, bookingReference, score);
+
+        // Register as active queue
+        registerActiveQueue(ticketId);
+
+        log.debug("Added {} to queue {}", bookingReference, ticketId);
+    }
+
+    /**
+     * Update the popBatchFromQueue method to deregister when empty
+     */
+    public Set<Object> popBatchFromQueue(String ticketId, int batchSize) {
+        String key = QUEUE_PREFIX + ticketId;
+
+        // Lua script to atomically get and remove items
+        String luaScript =
+                "local items = redis.call('ZRANGE', KEYS[1], 0, ARGV[1] - 1) " +
+                        "if #items > 0 then " +
+                        "    redis.call('ZREMRANGEBYRANK', KEYS[1], 0, ARGV[1] - 1) " +
+                        "end " +
+                        "local remaining = redis.call('ZCARD', KEYS[1]) " +
+                        "return {items, remaining}";
+
+        DefaultRedisScript<List> script = new DefaultRedisScript<>();
+        script.setScriptText(luaScript);
+        script.setResultType(List.class);
+
+        List<Object> result = redisTemplate.execute(
+                script,
+                Collections.singletonList(key),
+                batchSize
+        );
+
+        if (result == null || result.isEmpty()) {
+            return Set.of();
+        }
+
+        // Extract items and remaining count
+        List<Object> items = (List<Object>) result.get(0);
+        Long remaining = result.size() > 1 ? Long.valueOf(result.get(1).toString()) : 0L;
+
+        // Deregister if queue is now empty
+        if (remaining == 0) {
+            deregisterActiveQueue(ticketId);
+            log.info("Queue empty for ticket: {}, deregistered", ticketId);
+        }
+
+        return items != null ? Set.copyOf(items) : Set.of();
     }
 }

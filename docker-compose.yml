@@ -328,6 +328,22 @@ services:
     networks:
       - mmtext_network
 
+  booking-service:
+    build: ./booking-service
+    container_name: booking-service
+    ports:
+      - "4006:4006"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=admin
+
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - mmtext_network
+
 volumes:
   redis_data:
   postgres_data:

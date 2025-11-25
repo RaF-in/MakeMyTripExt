@@ -12,6 +12,7 @@ public final class Enums {
         PAYMENT_PENDING,  // Waiting for payment (stored in Redis, not DB)
         CONFIRMED,        // Payment successful, ticket booked in DB
         CANCELLED         // Booking cancelled
+        ;
     }
 
     public enum TicketStatus {

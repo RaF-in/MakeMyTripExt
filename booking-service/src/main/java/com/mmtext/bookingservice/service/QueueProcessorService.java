@@ -1,6 +1,7 @@
 package com.mmtext.bookingservice.service;
 
 import com.mmtext.bookingservice.dto.BookingData;
+import com.mmtext.bookingservice.dto.NotificationRequest;
 import com.mmtext.bookingservice.dto.PaymentRequest;
 import com.mmtext.bookingservice.dto.PaymentResponse;
 import com.mmtext.bookingservice.enums.Enums;
@@ -13,8 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -41,9 +40,12 @@ public class QueueProcessorService {
 
     @Autowired
     private RateLimiterService rateLimiterService;
-    
+
     @Autowired
     private TicketAvailabilityService ticketAvailabilityService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Value("${booking.queue.batch-size:100}")
     private int batchSize;
@@ -53,18 +55,33 @@ public class QueueProcessorService {
      * Runs every 5 seconds
      */
     @Scheduled(fixedDelayString = "${booking.queue.processing-interval:5000}")
-    @Transactional
-    public void processQueue() {
-        logger.debug("Processing high concurrency queues...");
+    public void processQueues() {
+        logger.debug("Starting queue processing cycle...");
 
-        // In a real system, you'd track which ticket IDs have active queues
-        // For this example, we'll process queues for known ticket patterns
-        // In production, you'd maintain a separate set of active queue IDs
+        try {
+            // Get all active queues from Redis
+            Set<String> activeQueueKeys = redisService.getActiveQueueKeys();
 
-        List<String> activeTicketIds = getActiveQueueTicketIds();
+            if (activeQueueKeys.isEmpty()) {
+                logger.debug("No active queues to process");
+                return;
+            }
 
-        for (String ticketId : activeTicketIds) {
-            processQueueForTicket(ticketId);
+            logger.info("Processing {} active queues", activeQueueKeys.size());
+
+            for (String queueKey : activeQueueKeys) {
+                // Extract ticket ID from queue key
+                String ticketId = queueKey.replace("queue:", "");
+
+                try {
+                    processQueueForTicket(ticketId);
+                } catch (Exception e) {
+                    logger.error("Error processing queue for ticket: {}", ticketId, e);
+                }
+            }
+
+        } catch (Exception e) {
+            logger.error("Error in queue processing cycle", e);
         }
     }
 
@@ -75,21 +92,31 @@ public class QueueProcessorService {
         Long queueSize = redisService.getQueueSize(ticketId);
 
         if (queueSize == null || queueSize == 0) {
+            logger.debug("Queue empty for ticket: {}", ticketId);
             return;
         }
 
         logger.info("Processing queue for ticket: {}, Queue size: {}", ticketId, queueSize);
 
-        // Pop batch from queue
+        // Check if ticket is still available
+        if (!ticketAvailabilityService.isTicketAvailable(ticketId)) {
+            logger.warn("Ticket no longer available: {}. Cancelling remaining queue.", ticketId);
+            cancelRemainingQueue(ticketId);
+            return;
+        }
+
+        // Pop batch from queue atomically
         Set<Object> batch = redisService.popBatchFromQueue(ticketId, batchSize);
 
         if (batch.isEmpty()) {
+            logger.debug("No items popped from queue for ticket: {}", ticketId);
             return;
         }
 
         logger.info("Processing batch of {} bookings for ticket: {}", batch.size(), ticketId);
 
         List<String> successfulBookings = new ArrayList<>();
+        List<String> failedBookings = new ArrayList<>();
         Instant expiredAt = Instant.now().plus(15, ChronoUnit.MINUTES);
         long ttlSeconds = Duration.between(Instant.now(), expiredAt).getSeconds();
 
@@ -99,6 +126,9 @@ public class QueueProcessorService {
             logger.error("Ticket not found: {}", ticketId);
             return;
         }
+
+        int processedCount = 0;
+        boolean ticketBecameUnavailable = false;
 
         for (Object bookingRefObj : batch) {
             String bookingReference = bookingRefObj.toString();
@@ -120,12 +150,30 @@ public class QueueProcessorService {
                 if (booking == null) {
                     logger.error("Booking not found: {}", bookingReference);
                     redisService.removeFromProcessing(bookingReference);
+                    failedBookings.add(bookingReference);
                     continue;
                 }
 
                 if (booking.getStatus() != Enums.BookingStatus.QUEUED) {
-                    logger.warn("Booking not in QUEUED status: {}", bookingReference);
+                    logger.warn("Booking not in QUEUED status: {} - {}",
+                            bookingReference, booking.getStatus());
                     redisService.removeFromProcessing(bookingReference);
+                    continue;
+                }
+
+                // Check if ticket still available before locking
+                if (ticketBecameUnavailable || !ticketAvailabilityService.isTicketAvailable(ticketId)) {
+                    logger.warn("Ticket became unavailable during batch processing: {}", ticketId);
+                    ticketBecameUnavailable = true;
+
+                    // Cancel this booking
+                    booking.setStatus(Enums.BookingStatus.CANCELLED);
+                    bookingRepository.save(booking);
+                    redisService.removeFromProcessing(bookingReference);
+                    failedBookings.add(bookingReference);
+
+                    // Notify user
+                    sendFailureNotification(booking, ticket, "Ticket no longer available");
                     continue;
                 }
 
@@ -137,6 +185,10 @@ public class QueueProcessorService {
                     booking.setStatus(Enums.BookingStatus.CANCELLED);
                     bookingRepository.save(booking);
                     redisService.removeFromProcessing(bookingReference);
+                    failedBookings.add(bookingReference);
+
+                    // Notify user
+                    sendFailureNotification(booking, ticket, "Unable to reserve ticket");
                     continue;
                 }
 
@@ -171,6 +223,7 @@ public class QueueProcessorService {
                 bookingRepository.save(booking);
 
                 successfulBookings.add(bookingReference);
+                processedCount++;
 
                 // Remove from processing
                 redisService.removeFromProcessing(bookingReference);
@@ -178,33 +231,137 @@ public class QueueProcessorService {
                 // Notify via SSE if client is connected
                 queueStatusService.notifyBookingUpdate(bookingReference);
 
+                // Send payment link notification
+                NotificationRequest notificationRequest = new NotificationRequest(
+                        booking.getUserId(),
+                        bookingReference,
+                        ticketId,
+                        ticket.getEventName(),
+                        booking.getAmount()
+                );
+                notificationRequest.setPaymentUrl(paymentResponse.getPaymentUrl());
+                notificationRequest.setExpiredAt(expiredAt);
+
+                notificationService.sendPaymentLink(notificationRequest);
+
                 logger.info("Successfully processed booking from queue: {}, Payment URL: {}",
                         bookingReference, paymentResponse.getPaymentUrl());
 
             } catch (Exception e) {
                 logger.error("Error processing booking: {}", bookingReference, e);
                 redisService.removeFromProcessing(bookingReference);
+                failedBookings.add(bookingReference);
             }
         }
 
-        logger.info("Batch processing complete for ticket: {}. Successful: {}/{}",
-                ticketId, successfulBookings.size(), batch.size());
+        logger.info("Batch processing complete for ticket: {}. Successful: {}, Failed: {}, Total: {}",
+                ticketId, successfulBookings.size(), failedBookings.size(), batch.size());
+
+        // If ticket became unavailable, cancel remaining queue
+        if (ticketBecameUnavailable) {
+            cancelRemainingQueue(ticketId);
+        }
     }
 
     /**
-     * Get list of active queue ticket IDs
-     * In production, this would be maintained in Redis or DB
+     * Cancel all remaining bookings in queue when ticket becomes unavailable
      */
-    private List<String> getActiveQueueTicketIds() {
-        // This is a placeholder. In production, you would:
-        // 1. Maintain a Redis Set of active queue ticket IDs
-        // 2. Add ticket ID to set when first booking is queued
-        // 3. Remove from set when queue is empty
-        // 4. Query this set here
+    private void cancelRemainingQueue(String ticketId) {
+        logger.info("Cancelling remaining queue for ticket: {}", ticketId);
 
-        // For demo purposes, scan for any HIGH concurrency bookings in QUEUED status
-        // In production, use a better approach
+        Long remainingSize = redisService.getQueueSize(ticketId);
+        if (remainingSize == null || remainingSize == 0) {
+            return;
+        }
 
-        return new ArrayList<>();
+        // Pop all remaining items
+        Set<Object> remaining = redisService.popBatchFromQueue(ticketId, remainingSize.intValue());
+
+        Ticket ticket = ticketAvailabilityService.getTicket(ticketId);
+
+        for (Object bookingRefObj : remaining) {
+            String bookingReference = bookingRefObj.toString();
+
+            try {
+                Booking booking = bookingRepository.findByBookingReference(bookingReference)
+                        .orElse(null);
+
+                if (booking != null && booking.getStatus() == Enums.BookingStatus.QUEUED) {
+                    booking.setStatus(Enums.BookingStatus.CANCELLED);
+                    bookingRepository.save(booking);
+
+                    // Notify user
+                    sendFailureNotification(booking, ticket, "Ticket sold out");
+                }
+
+            } catch (Exception e) {
+                logger.error("Error cancelling queued booking: {}", bookingReference, e);
+            }
+        }
+
+        logger.info("Cancelled {} remaining bookings for ticket: {}", remaining.size(), ticketId);
+    }
+
+    /**
+     * Send failure notification to user
+     */
+    private void sendFailureNotification(Booking booking, Ticket ticket, String reason) {
+        try {
+            NotificationRequest notificationRequest = new NotificationRequest(
+                    booking.getUserId(),
+                    booking.getBookingReference(),
+                    booking.getTicketId(),
+                    ticket != null ? ticket.getEventName() : "Unknown Event",
+                    booking.getAmount()
+            );
+            notificationRequest.setFailureReason(reason);
+
+            notificationService.sendBookingFailure(notificationRequest);
+        } catch (Exception e) {
+            logger.error("Failed to send notification for booking: {}", booking.getBookingReference(), e);
+        }
+    }
+
+    /**
+     * Clean up rate limiter windows
+     * Runs every 5 minutes
+     */
+    @Scheduled(fixedRate = 300000)
+    public void cleanupRateLimiter() {
+        logger.debug("Cleaning up rate limiter expired windows");
+        rateLimiterService.cleanupExpiredWindows();
+    }
+
+    /**
+     * Monitor queue health
+     * Runs every 30 seconds
+     */
+    @Scheduled(fixedRate = 30000)
+    public void monitorQueueHealth() {
+        try {
+            Set<String> activeQueues = redisService.getActiveQueueKeys();
+
+            if (!activeQueues.isEmpty()) {
+                logger.info("=== Queue Health Report ===");
+
+                long totalQueued = 0;
+                for (String queueKey : activeQueues) {
+                    String ticketId = queueKey.replace("queue:", "");
+                    Long size = redisService.getQueueSize(ticketId);
+
+                    if (size != null && size > 0) {
+                        totalQueued += size;
+                        logger.info("Queue {}: {} bookings waiting", ticketId, size);
+                    }
+                }
+
+                logger.info("Total queued bookings across all tickets: {}", totalQueued);
+                logger.info("Active SSE connections: {}", queueStatusService.getActiveConnectionCount());
+                logger.info("===========================");
+            }
+
+        } catch (Exception e) {
+            logger.error("Error monitoring queue health", e);
+        }
     }
 }
