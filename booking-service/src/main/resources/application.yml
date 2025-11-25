@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: booking-service
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+server:
+  port: 4006
+
+booking:
+  queue:
+    batch-size: 100
+    processing-interval: 5000
+  payment:
+    timeout-seconds: 900

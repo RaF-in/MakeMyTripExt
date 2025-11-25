@@ -11,11 +11,13 @@
         <module name="supplier-adapter-service" />
         <module name="search-consumer-service" />
         <module name="search-service" />
+        <module name="booking-service" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="booking-service" options="-parameters" />
       <module name="listing-service" options="-parameters" />
       <module name="search-consumer-service" options="-parameters" />
       <module name="search-service" options="-parameters" />
